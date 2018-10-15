@@ -6,8 +6,6 @@ const Promise = require('bluebird');
  * Represents a single task.
  */
 class Task {
-
-
     constructor() {
         /* Ids */
         this.googleId = null;
@@ -44,17 +42,6 @@ class Task {
             isDocs: "5bb13da34edf5926c83f294a",
             isQa: "5bb13da9f285397f1a80dddc",
             isOutResearch: "5bb13dbc351a9c4e5c93cd1f"
-        }
-    }
-
-    /**
-     * Syncs the data between both google and trello.
-     *
-     * Will only run if there is both a google & trello id.
-     */
-    crosslinkIds() {
-        if (this.googleId && this.trelloId) {
-            this.writeToGoogle()
         }
     }
 
@@ -191,7 +178,7 @@ class Task {
      *
      * _This will overwrite the current card information_
      *
-     * @return {Promise<*>} A promise that is resolved when all the fields have been written to
+     * @return {Promise} A promise that is resolved when all the fields have been written to
      */
     async writeToTrello() {
         console.log(`Writing "${this.name}" (${this.trelloId}) to trello`);
@@ -222,36 +209,42 @@ class Task {
      * _This will overwrite the current task information_
      */
     writeToGoogle() {
-        if (this.googleId) {
-            const data = {
-                id: this.googleId,
-                name: this.name,
-                description: this.description,
-                status: this.status,
-                max_instances: this.maxInstances,
-                is_beginner: this.isBeginner,
-                time_to_complete_in_days: this.days,
-                external_url: this.externalUrl,
+        const data = {
+            id: this.googleId,
+            name: this.name,
+            description: this.description,
+            status: this.status,
+            max_instances: this.maxInstances,
+            is_beginner: this.isBeginner,
+            time_to_complete_in_days: this.days,
+            external_url: this.externalUrl,
 
-                last_modified: this.lastModified,
-                claimed_count: this.claimedCount,
-                available_count: this.availableCount,
-                completed_count: this.completedCount,
+            last_modified: this.lastModified,
+            claimed_count: this.claimedCount,
+            available_count: this.availableCount,
+            completed_count: this.completedCount,
 
-                private_metadata: this.trelloId,
+            private_metadata: this.trelloId,
 
-                mentors: this.mentors,
-                tags: this.tags,
-                categories: []
-            };
-            for (let category in this.categories) {
-                if (this.categories[category]) {
-                    data.categories.push(category)
-                }
+            mentors: this.mentors,
+            tags: this.tags,
+            categories: []
+        };
+        for (let category in this.categories) {
+            if (this.categories[category]) {
+                data.categories.push(category)
             }
-            requester.updateGoogle(this.googleId, data);
+        }
+
+        if (!this.googleId) {
+            console.warn(`Making new google task for ${this.name} (${this.trelloId})`);
+            requester.googlePost(data).then(body => {
+                this.googleId = body.id;
+                /* We write to trello to write the google task id */
+                this.writeToTrello();
+            });
         } else {
-            console.error("Cannot write. Have no google id")
+            requester.updateGoogle(this.googleId, data);
         }
     }
 }

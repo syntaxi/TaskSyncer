@@ -130,6 +130,23 @@ class ApiRequester {
             json: true
         }).promise();
     }
+
+    /**
+     * Makes a POST request to the google api
+     * @param data The data to sent to the task
+     * @return {Promise} A promise that is resolved with the data
+     */
+    googlePost(data) {
+        return request({
+            method: 'POST',
+            uri: `https://codein.withgoogle.com/api/program/current/tasks/`,
+            auth: {
+                'bearer': this.googleToken
+            },
+            body: data,
+            json: true
+        }).promise();
+    }
 }
 
 /**
