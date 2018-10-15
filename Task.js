@@ -97,7 +97,7 @@ class Task {
         return requester.getCustomFields(this.trelloId).then(body => {
             /* Copy across so we know what fields are NOT set */
             this.loadedFields = {};
-            Object.keys(this.customFields).forEach(key => this.loadedFields[key] = this.customFields[key]);
+            Object.keys(this.customFields).forEach(key => this.loadedFields[this.customFields[key]] = key);
 
             body.customFieldItems.forEach(this.handleField, this);
 
@@ -128,7 +128,7 @@ class Task {
          * Updates this task with the data from the given custom field.
          * Handles all the current types.
          */
-        delete this.loadedFields[field];
+        delete this.loadedFields[field.idCustomField];
         switch (field.idCustomField) {
             case this.customFields.days:
                 this.days = parseInt(field.value.number);
