@@ -1,5 +1,6 @@
 "use strict";
-const request = require('request');
+const request = require('request-promise');
+const Promise = require('bluebird');
 const tokens = require('./tokens.json');
 
 const categories = {
@@ -52,12 +53,21 @@ class Task {
     }
 
     crosslinkIds() {
+        /**
+         * Syncs the data between both google and trello.
+         *
+         * Will only run if there is both a google & trello id.
+         */
         if (this.googleId && this.trelloId) {
-
+            this.writeToGoogle()
         }
     }
 
     loadFromGoogle(data) {
+        /***
+         * Loads data from a google data payload.
+         * This is a json object with fields described by the google api reference.
+         */
         this.name = data.name;
         this.googleId = data.id;
         this.description = data.description;
@@ -77,26 +87,33 @@ class Task {
         this.availableCount = data.available_count;
         this.completedCount = data.completed_count;
 
-        //TODO: Use this for trello id
-        this.private_metadata = data.private_metadata;
-
-        this.crosslinkIds()
+        /* Update trello id if we have one. */
+        this.trelloId = data.private_metadata || this.trelloId;
     }
 
     loadFromTrello(data) {
+        /**
+         * Loads the data from a trello payload.
+         * This is the result from querying the card.
+         *
+         * Makes further calls to the api in order to get the data for each of the custom fields
+         *
+         * Returns a promise that only activates when all fields have been requested
+         */
         this.trelloId = data.id;
         this.description = data.desc;
         this.name = data.name;
 
-        requester.getCustomFields(this.trelloId,
-            (data) => {
-                data.customFieldItems.forEach(this.handleField, this);
-            }, this);
-
-        this.crosslinkIds()
+        return requester.getCustomFields(this.trelloId).then(body => {
+            body.customFieldItems.forEach(this.handleField, this);
+        });
     }
 
     handleField(field) {
+        /**
+         * Updates this task with the data from the given custom field.
+         * Handles all the current types.
+         */
         switch (field.idCustomField) {
             case this.customFields.isBeginner:
                 this.isBeginner = field.value.checked === "true";
@@ -142,6 +159,43 @@ class Task {
                 console.error(`Unknown field type '${field.id}' on card ${this.name}`);
         }
     }
+
+    writeToGoogle() {
+        /**
+         * Updates the task on GCI to the data in the current task
+         *
+         * _This will overwrite the current task information_
+         */
+        if (this.googleId) {
+            const data = {
+                id: this.googleId,
+                name: this.name,
+                description: this.description,
+                status: this.status,
+                max_instances: this.maxInstances,
+                is_beginner: this.isBeginner,
+                time_to_complete_in_days: this.days,
+                external_url: this.externalUrl,
+                last_modified: this.lastModified,
+                claimed_count: this.claimedCount,
+                available_count: this.availableCount,
+                completed_count: this.completedCount,
+                private_metadata: this.trelloId,
+
+                mentors: this.mentors,
+                tags: this.tags,
+                categories: []
+            };
+            for (let category in this.categories) {
+                if (this.categories[category]) {
+                    data.categories.push(category)
+                }
+            }
+            requester.updateGoogle(this.googleId, data);
+        } else {
+            console.error("Cannot write. Have no google id")
+        }
+    }
 }
 
 class TaskList {
@@ -183,15 +237,31 @@ class TaskList {
         return this.tasks[index];
     }
 
-    loadFromGoogle(page) {
-        page = page || 1;
-        console.log(`Requesting page ${page} from google`);
-        requester.googleGet('tasks', 'page=1', (body) => {
-            taskList._loadFromGoogle(body);
-            if (body['next'] != null) {
-                this.loadFromGoogle(body.next);
+    loadFromGoogle() {
+        const outerList = this;
+        /* Make a new promise */
+        return new Promise(resolve => {
+
+            /* This needs to be a nested function to have access to the resolve
+             * And to be able to not make a new promise each recusion*/
+            function innerRecurse(page) {
+                console.log(`Requesting page ${page} from google`);
+                /* Request the tasks */
+                requester.googleGet('tasks', 'page=' + page)
+                    .then(body => {
+                        outerList._loadFromGoogle(body);
+                        if (body.next != null) {
+                            /* Recurse again if there are more pages */
+                            innerRecurse(body.next);
+                        } else {
+                            /* Resolve the promise and stop if there are no more pages */
+                            resolve();
+                        }
+                    });
             }
-        }, this);
+
+            innerRecurse(1);
+        });
     }
 
     _loadFromGoogle(data) {
@@ -199,15 +269,44 @@ class TaskList {
     }
 
     loadFromTrello() {
+        /**
+         * Loads the data from all the trello lists
+         *
+         * Returns a promise that triggers when all the tasks are fully updated
+         */
+
+        const categoryPromises = [];
         for (let category in categories) {
             console.log(`Requesting ${category.toLowerCase()} list from Trello`);
 
-            requester.getListCards(this.categoryLists[categories[category]], this._loadFromTrello, this);
+            /* Make a call for the category, making a new promise to finish when all are done */
+            categoryPromises.push(new Promise(resolve => {
+                requester.getListCards(this.categoryLists[categories[category]])
+                    .then((body) => {
+
+                        /* Make calls for each field, storing the promises */
+                        console.log(`Processing ${category.toLowerCase()}'s cards`);
+                        const fieldPromises = [];
+                        body.forEach((item) => fieldPromises.push(
+                            this.getTaskFromTrello(item.id).loadFromTrello(item)));
+
+                        /* Resolve the category promise when the fields are all done */
+                        Promise.all(fieldPromises).then(() => resolve());
+                    });
+            }));
         }
+        /* Return a promise that will finish when all the categories are done */
+        return Promise.all(categoryPromises);
     }
 
-    _loadFromTrello(data) {
-        data.forEach((item) => this.getTaskFromTrello(item.id).loadFromTrello(item));
+    writeToGoogle() {
+        console.log("Writing to Google");
+        this.tasks.forEach(task => task.writeToGoogle());
+    }
+
+    writeToTrello() {
+        console.log("Writing to Trello");
+        this.tasks.forEach(task => task.writeToTrello());
     }
 }
 
@@ -218,61 +317,62 @@ class ApiRequester {
         this.trelloToken = trelloToken;
     }
 
-    getListCards(id, callback, thisArg) {
-        this.trelloGet(`lists/${id}/cards`, null, callback, thisArg)
+    getListCards(id) {
+        return this.trelloGet(`lists/${id}/cards`);
     }
 
-    getCustomFields(card, callback, thisArg) {
-        this.trelloGet(`cards/${card}`, "&customFieldItems=true", callback, thisArg)
+    getCustomFields(card) {
+        return this.trelloGet(`cards/${card}`, "&customFieldItems=true");
     }
 
-    trelloGet(path, queryArg, callback, thisArg) {
-        request({
+    trelloGet(path, queryArg) {
+        return request({
             method: `GET`,
             uri: `https://api.trello.com/1/${path}`
-            + `?key=${this.trelloKey}&token=${this.trelloToken}${queryArg || ""}`
-        }, (error, response, body) => {
-            if (response.statusCode === 200) {
-                callback.call(thisArg, JSON.parse(body));
-            } else {
-                console.error(`Response: ${response.statusCode},\n\t${body}`);
-            }
-        });
+            + `?key=${this.trelloKey}&token=${this.trelloToken}${queryArg || ""}`,
+            json: true
+        }).promise();
     }
 
-    googleGet(item, queryArg, callback, thisArg) {
-        request({
+    googleGet(item, queryArg) {
+        return request({
             method: 'GET',
             uri: `https://codein.withgoogle.com/api/program/current/${item}/${queryArg ? "?" : ""}${queryArg}`,
             auth: {
                 'bearer': this.googleToken
-            }
+            },
+            json: true
 
-        }, (error, response, body) => {
-            if (response.statusCode === 200) {
-                callback.call(thisArg, JSON.parse(body));
-            } else {
-                console.error(`Response: ${response.statusCode},\n\t${body}`);
-            }
-        });
+        }).promise();
     }
 
     setCustomField(card, field, type, value) {
-        let data = {value:{}};
+        let data = {value: {}};
         data.value[type] = value;
-        this.trelloPut(`/card/${card}/customField/${field}/item`, data)
+        return this.trelloPut(`/card/${card}/customField/${field}/item`, data)
     }
 
     trelloPut(path, data) {
-        request({
+        return request({
             method: 'PUT',
             uri: `https://api.trello.com/1/${path}`
-            + `?key=${this.trelloKey}&token=${this.trelloToken}${queryArg || ""}`
-        }, (error, response, body) => {
-            if (response.statusCode !== 200) {
-                console.error(`Response: ${response.statusCode},\n\t${body}`);
-            }
-        });
+            + `?key=${this.trelloKey}&token=${this.trelloToken}${data || ""}`
+        }).promise();
+    }
+
+    updateGoogle(task, data) {
+        return this.googlePut(task, JSON.stringify(data))
+    }
+
+    googlePut(taskId, data) {
+        return request({
+            method: 'PUT',
+            uri: `https://codein.withgoogle.com/api/program/current/tasks/${taskId}/`,
+            auth: {
+                'bearer': this.googleToken
+            },
+            body: data
+        }).promise();
     }
 }
 
@@ -282,4 +382,8 @@ const requester = new ApiRequester(tokens.googleToken,
     tokens.trelloToken);
 const taskList = new TaskList(requester);
 
-taskList.loadFromGoogle();
+taskList.loadFromTrello()
+    .then(() => taskList.loadFromGoogle()
+        .then(() => {
+            console.log("donezo");
+        }));
