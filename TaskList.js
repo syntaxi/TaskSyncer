@@ -3,12 +3,12 @@ const requester = require('./ApiRequester');
 const Task = require('./Task');
 const Promise = require('bluebird');
 
+/**
+ * Overall store for all the tasks
+ *
+ * Provides methods to load and write to both Trello and Google
+ */
 class TaskList {
-    /**
-     * Overall store for all the tasks
-     *
-     * Provides methods to load and write to both Trello and Google
-     */
     constructor() {
         /**
          * The tasks contained in this list

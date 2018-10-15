@@ -2,7 +2,12 @@ const {categories} = require('./Globals');
 const requester = require('./ApiRequester');
 const Promise = require('bluebird');
 
+/**
+ * Represents a single task.
+ */
 class Task {
+
+
     constructor() {
         /* Ids */
         this.googleId = null;
@@ -42,22 +47,23 @@ class Task {
         }
     }
 
+    /**
+     * Syncs the data between both google and trello.
+     *
+     * Will only run if there is both a google & trello id.
+     */
     crosslinkIds() {
-        /**
-         * Syncs the data between both google and trello.
-         *
-         * Will only run if there is both a google & trello id.
-         */
         if (this.googleId && this.trelloId) {
             this.writeToGoogle()
         }
     }
 
+    /**
+     * Loads data from a google data payload.
+     *
+     * @param data {json} The google api result for this task.
+     */
     loadFromGoogle(data) {
-        /***
-         * Loads data from a google data payload.
-         * This is a json object with fields described by the google api reference.
-         */
         this.name = data.name;
         this.googleId = data.id;
         this.description = data.description;
@@ -81,6 +87,13 @@ class Task {
         this.trelloId = data.private_metadata || this.trelloId;
     }
 
+    /**
+     * Loads the task from trello card data.
+     * Makes further api calls to obtain the custom field data
+     *
+     * @param data {json} The Trello card data to load in
+     * @return {Promise} Returns a new promise that is only finished when all the data has been loaded
+     */
     loadFromTrello(data) {
         /**
          * Loads the data from a trello payload.
@@ -94,41 +107,46 @@ class Task {
         this.description = data.desc;
         this.name = data.name;
 
+        //TODO: Get the custom field data at the same time as the card data
         return requester.getCustomFields(this.trelloId).then(body => {
             /* Copy across so we know what fields are NOT set */
-            this.loadedFields = {};
-            Object.keys(this.customFields).forEach(key => this.loadedFields[this.customFields[key]] = key);
+            this.unloadedFields = {};
+            Object.keys(this.customFields).forEach(key => this.unloadedFields[this.customFields[key]] = key);
 
             body.customFieldItems.forEach(this.handleField, this);
 
+            //TODO: This is really ugly
             /* Update false entries */
-            if (this.customFields.isBeginner in this.loadedFields) {
+            if (this.customFields.isBeginner in this.unloadedFields) {
                 this.isBeginner = false;
             }
-            if (this.customFields.isCode in this.loadedFields) {
+            if (this.customFields.isCode in this.unloadedFields) {
                 this.categories[categories.CODING] = false;
             }
-            if (this.customFields.isDesign in this.loadedFields) {
+            if (this.customFields.isDesign in this.unloadedFields) {
                 this.categories[categories.DESIGN] = false;
             }
-            if (this.customFields.isDocs in this.loadedFields) {
+            if (this.customFields.isDocs in this.unloadedFields) {
                 this.categories[categories.DOCS_TRAINING] = false;
             }
-            if (this.customFields.isOutResearch in this.loadedFields) {
+            if (this.customFields.isOutResearch in this.unloadedFields) {
                 this.categories[categories.OUTRESEARCH] = false;
             }
-            if (this.customFields.isQa in this.loadedFields) {
+            if (this.customFields.isQa in this.unloadedFields) {
                 this.categories[categories.QA] = false;
             }
         });
     }
 
+    /**
+     * Updates this task with the data from the given custom field.
+     * Also removes this field from the lis to of unloaded fields
+     *
+     * @param field {json} The custom field to load the data from
+     */
     handleField(field) {
-        /**
-         * Updates this task with the data from the given custom field.
-         * Handles all the current types.
-         */
-        delete this.loadedFields[field.idCustomField];
+        delete this.unloadedFields[field.idCustomField];
+        //TODO: This is really ugly
         switch (field.idCustomField) {
             case this.customFields.days:
                 this.days = parseInt(field.value.number);
@@ -168,15 +186,18 @@ class Task {
         }
     }
 
+    /**
+     * Updates the card on trello with the data in this task
+     *
+     * _This will overwrite the current card information_
+     *
+     * @return {Promise<*>} A promise that is resolved when all the fields have been written to
+     */
     async writeToTrello() {
-        /**
-         * Updates the card on trello with the data in this task
-         *
-         * _This will overwrite the current card information_
-         */
         console.log(`Writing "${this.name}" (${this.trelloId}) to trello`);
         const promises = [];
         if (this.trelloId) {
+            //TODO: This is really ugly
             /* Set custom fields */
             await promises.push(requester.setCustomField(this.trelloId, this.customFields.isBeginner, 'checked', this.isBeginner));
 
@@ -195,12 +216,12 @@ class Task {
         return Promise.all(promises);
     }
 
+    /**
+     * Updates the task on GCI to the data in the current task
+     *
+     * _This will overwrite the current task information_
+     */
     writeToGoogle() {
-        /**
-         * Updates the task on GCI to the data in the current task
-         *
-         * _This will overwrite the current task information_
-         */
         if (this.googleId) {
             const data = {
                 id: this.googleId,
