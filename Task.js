@@ -2,15 +2,38 @@ const {categories} = require('./Globals');
 const requester = require('./ApiRequester');
 const Promise = require('bluebird');
 
+/**
+ * Represents a single field on a task.
+ * There are two child classes depending on the location of the data in trello
+ *
+ * @see BasicTaskField
+ * @see CustomTaskField
+ */
 class TaskField {
+    /**
+     * Loads up the google elements of the task field
+     *
+     * @param googleHandler {string|function} If this is a string then, it is used as the key for the data payload.
+     *                  if it is a function, then that function should take in the full data payload
+     *                  and return the value to set the field to. The current field value is also passed as an optional
+     *                  second paramater
+     * @param initialValue {*} The initial value to set the field to. Default of null
+     */
     constructor(googleHandler, initialValue) {
         this.parseGoogle = this._loadArgument(googleHandler);
         this.value = initialValue || null;
     }
 
+    /**
+     * Handles converting the handler argument into the correct function type
+     *
+     * @param argument The handler argument
+     * @return {function} A function that takes in the data and returns the value for this field
+     * @private
+     */
     _loadArgument(argument) {
         if (typeof argument === "string") {
-            return (data) => data[argument];
+            return data => data[argument];
         } else if (typeof argument === "function") {
             return argument;
         } else {
@@ -18,72 +41,151 @@ class TaskField {
         }
     }
 
+    /**
+     * Loads the value for this field from the given data payload.
+     * This calls the google handler as specified in the constructor
+     *
+     * @param data The raw google task payload
+     */
     loadFromGoogle(data) {
         this.value = this.parseGoogle(data, this.value)
     }
 
+    /**
+     * Loads the value for this field from the trello payload.
+     * This payload varies depending on the subclasses for this class
+     *
+     * Blank, should be overridden.
+     */
     loadFromTrello() {
 
     }
 
+    /**
+     * @return {*} The value contained in this field
+     */
     getValue() {
         return this.value
     }
 
+    /**
+     * @param data The value to set this field to.
+     */
     setValue(data) {
         this.value = data;
     }
 }
 
+/**
+ * Represents a task field where the data is located in the main card payload.
+ *
+ * @see TaskField
+ */
 class BasicTaskField extends TaskField {
+    /**
+     * Loads in the trello field stuff and delegates the google fields to the super constructor
+     * @param googleHandler The google handler
+     * @param trelloHandler If a string, then should be the key of the data in the payload.
+     *                      Else should be a function that takes in the payload and optionally the current field value
+     *                      and returns the new field value
+     * @param initialValue The initial value to set the field to. Defaults to null
+     */
     constructor(googleHandler, trelloHandler, initialValue) {
         super(googleHandler, initialValue);
         this.parseTrello = this._loadArgument(trelloHandler);
     }
 
+    /**
+     * Loads the value for this field from the main card payload
+     * @param data The card payload
+     */
     loadFromTrello(data) {
         this.value = this.parseTrello(data)
     }
 }
 
+/**
+ * Represents a task field where the data is located in a custom field
+ *
+ * @see TaskField
+ */
 class CustomTaskField extends TaskField {
+    /**
+     * Loads in the trello field stuff and delegates the google fields to the super constructor
+     *
+     * @param googleHandler The google handler
+     * @param fieldId The id of the custom field
+     * @param trelloHandler If a string, should be the type of the custom field data.
+     *                      If a function, should take in the field payload and optionally the fields current value
+     *                      and return the new value
+     * @param initialValue The initial value to set the field to. Defaults to null.
+     */
     constructor(googleHandler, fieldId, trelloHandler, initialValue) {
         super(googleHandler, initialValue);
         this.fieldId = fieldId;
-        if (typeof this.parseTrello === "string") {
+        this.type = typeof trelloHandler;
+        this.parseTrello = this._parseTrelloHandler(trelloHandler);
+    }
+
+    /**
+     * Converts the trello handler into an appropriate function
+     *
+     * @param trelloHandler
+     * @return {function} The parsing function
+     * @private
+     */
+    _parseTrelloHandler(trelloHandler) {
+        if (typeof trelloHandler === "string") {
             switch (trelloHandler) {
                 case 'number':
-                    this.parseTrello = field => parseInt(field.number);
-                    break;
+                    return field => parseInt(field.number);
                 case 'boolean':
-                    this.parseTrello = field => field.checked === 'true';
-                    break;
+                    return field => field.checked === 'true';
                 default:
                     throw new TypeError(`Type of trelloHandler (${trelloHandler}) was not known `)
             }
-            this.type = this.parseTrello;
         } else if (typeof trelloHandler === 'function') {
-            this.parseTrello = this._loadArgument(trelloHandler);
-            this.type = 'custom';
+            return trelloHandler;
         } else {
             throw new TypeError(`Field trelloHandler (${trelloHandler}) is not a String or Function`);
         }
     }
 
+    /**
+     * Called if the field was not set on the card. Handles the default value for the field
+     * Useful for checkboxes where a 'false' value simply means the field doesn't show up
+     */
     handleNotPresent() {
         if (this.type === 'boolean') {
             this.setValue(false)
         }
     }
 
+    /**
+     * Checks if this matches a given custom field
+     *
+     * @param field The full custom field payload to check against
+     * @return {boolean} True if the given custom field matches this
+     */
     doesFieldMatch(field) {
         return field.idCustomField === this.fieldId
     }
 
+    /**
+     * Loads the field data from the custom field payload
+     *
+     * @param field The full payload for the custom field.
+     */
     loadFromTrello(field) {
         this.value = this.parseTrello(field.value, this.value)
     }
 
+    /**
+     * Converts this field to a string.
+     * Simply gives the string version of the value
+     *
+     * @return {string} The string version of this fields data
+     */
     toString() {
         return (this.value || "null").toString()
     }
@@ -208,13 +310,9 @@ class Task {
         //TODO: Get the custom field data at the same time as the card data
         return requester.getCustomFields(this.trelloId).then(body => {
             /* Copy across so we know what fields are NOT set */
-            this.unloadedFields = {};
-            Object.keys(this.customFields).forEach(key => this.unloadedFields[this.customFields[key]] = key);
-
             body.customFieldItems.forEach(this.handleField, this);
 
-            //TODO: This is really ugly
-            /* Update false entries as they just don't appear */
+            /* Update false entries for the checkboxes */
             Object.values(this.fields)
                 .filter(field => field instanceof CustomTaskField)
                 .forEach(field => field.handleNotPresent());
@@ -235,7 +333,6 @@ class Task {
             .filter(taskField => taskField.doesFieldMatch(field))
             /* Load the data for each remaining field */
             .forEach(taskField => taskField.loadFromTrello(field));
-        delete this.unloadedFields[field.idCustomField];
     }
 
     /**
