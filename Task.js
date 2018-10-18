@@ -39,7 +39,6 @@ class BasicTaskField extends TaskField {
     constructor(googleHandler, trelloHandler, initialValue) {
         super(googleHandler, initialValue);
         this.parseTrello = this._loadArgument(trelloHandler);
-        this.value = null;
     }
 
     loadFromTrello(data) {
@@ -48,22 +47,45 @@ class BasicTaskField extends TaskField {
 }
 
 class CustomTaskField extends TaskField {
-    constructor(googleHandler, fieldIds, trelloHandler, initialValue) {
+    constructor(googleHandler, fieldId, trelloHandler, initialValue) {
         super(googleHandler, initialValue);
-        if (typeof fieldIds === 'string') {
-            fieldIds = [fieldIds];
+        this.fieldId = fieldId;
+        if (typeof this.parseTrello === "string") {
+            switch (trelloHandler) {
+                case 'number':
+                    this.parseTrello = field => parseInt(field.number);
+                    break;
+                case 'boolean':
+                    this.parseTrello = field => field.checked === 'true';
+                    break;
+                default:
+                    throw new TypeError(`Type of trelloHandler (${trelloHandler}) was not known `)
+            }
+            this.type = this.parseTrello;
+        } else if (typeof trelloHandler === 'function') {
+            this.parseTrello = this._loadArgument(trelloHandler);
+            this.type = 'custom';
+        } else {
+            throw new TypeError(`Field trelloHandler (${trelloHandler}) is not a String or Function`);
         }
-        this.fieldIds = fieldIds;
-        this.parseTrello = this._loadArgument(trelloHandler);
-        this.value = null;
+    }
+
+    handleNotPresent() {
+        if (this.type === 'boolean') {
+            this.setValue(false)
+        }
     }
 
     doesFieldMatch(field) {
-        return field.idCustomField in this.fieldIds
+        return field.idCustomField === this.fieldId
     }
 
     loadFromTrello(field) {
-        this.value = this.parseTrello(field.value, value)
+        this.value = this.parseTrello(field.value, this.value)
+    }
+
+    toString() {
+        return (this.value || "null").toString()
     }
 }
 
@@ -98,14 +120,44 @@ class Task {
             name: new BasicTaskField('name', 'name'),
             description: new BasicTaskField('description', 'desc'),
             status: new TaskField('status'),//TODO: Add this to trello cards
-            maxInstances: new CustomTaskField('max_instances', this.customFields.instances, field => parseInt(field.number)),
             mentors: new TaskField('mentors'),//TODO: Add this to trello cards
-            tags: new CustomTaskField('tags', this.customFields.tags, field => field.text.split(/\s*,\s*/i)),
-            isBeginner: new CustomTaskField('is_beginner', this.customFields.isBeginner, field => field.checked === "true"),
             externalUrl: new TaskField('external_url'), //TODO: Add this to trello cards
-            days: new CustomTaskField('time_to_complete_in_days', this.customFields.days, field => parseInt(field.number)),
+            maxInstances: new CustomTaskField(
+                'max_instances',
+                this.customFields.instances,
+                field => parseInt(field.number)),
+            tags: new CustomTaskField('tags',
+                this.customFields.tags,
+                field => field.text.split(/\s*,\s*/i)),
+            isBeginner: new CustomTaskField(
+                'is_beginner',
+                this.customFields.isBeginner,
+                field => field.checked === "true"),
+            days: new CustomTaskField(
+                'time_to_complete_in_days',
+                this.customFields.days,
+                field => parseInt(field.number)),
 
-            categories: new TaskField((data, prior) => data.categories.forEach(item => prior[item] = true), {}),
+            isCode: new CustomTaskField(
+                data => categories.CODING in data,
+                this.customFields.isCode,
+                field => field.checked === 'true'),
+            isDesign: new CustomTaskField(
+                data => categories.DESIGN in data,
+                this.customFields.isDesign,
+                field => field.checked === 'true'),
+            isDocs: new CustomTaskField(
+                data => categories.DOCS_TRAINING in data,
+                this.customFields.isDocs,
+                field => field.checked === 'true'),
+            isQa: new CustomTaskField(
+                data => categories.QA in data,
+                this.customFields.isQa,
+                field => field.checked === 'true'),
+            isOutResearch: new CustomTaskField(
+                data => categories.OUTRESEARCH in data,
+                this.customFields.isOutResearch,
+                field => field.checked === 'true'),
 
             lastModified: new TaskField('last_modified'),
             claimedCount: new TaskField('claimed_count'),
@@ -150,7 +202,7 @@ class Task {
 
         /* Load all the basic fields */
         Object.values(this.fields)
-            .filter(value => BasicTaskField.isPrototypeOf(value))
+            .filter(value => value instanceof BasicTaskField)
             .forEach(field => field.loadFromTrello(data));
 
         //TODO: Get the custom field data at the same time as the card data
@@ -162,25 +214,10 @@ class Task {
             body.customFieldItems.forEach(this.handleField, this);
 
             //TODO: This is really ugly
-            /* Update false entries */
-            if (this.customFields.isBeginner in this.unloadedFields) {
-                this.isBeginner = false;
-            }
-            if (this.customFields.isCode in this.unloadedFields) {
-                this.categories[categories.CODING] = false;
-            }
-            if (this.customFields.isDesign in this.unloadedFields) {
-                this.categories[categories.DESIGN] = false;
-            }
-            if (this.customFields.isDocs in this.unloadedFields) {
-                this.categories[categories.DOCS_TRAINING] = false;
-            }
-            if (this.customFields.isOutResearch in this.unloadedFields) {
-                this.categories[categories.OUTRESEARCH] = false;
-            }
-            if (this.customFields.isQa in this.unloadedFields) {
-                this.categories[categories.QA] = false;
-            }
+            /* Update false entries as they just don't appear */
+            Object.values(this.fields)
+                .filter(field => field instanceof CustomTaskField)
+                .forEach(field => field.handleNotPresent());
         });
     }
 
@@ -192,51 +229,13 @@ class Task {
      */
     handleField(field) {
         Object.values(this.fields)
-            /* Only process fields linked with a Custom Field */
-            .filter(taskField => CustomTaskField.isPrototypeOf(taskField))
+        /* Only process fields linked with a Custom Field */
+            .filter(taskField => taskField instanceof CustomTaskField)
             /* Only process field that match this field's id */
             .filter(taskField => taskField.doesFieldMatch(field))
             /* Load the data for each remaining field */
             .forEach(taskField => taskField.loadFromTrello(field));
         delete this.unloadedFields[field.idCustomField];
-        //TODO: This is really ugly
-        switch (field.idCustomField) {
-            case this.customFields.days:
-                this.days = parseInt(field.value.number);
-                break;
-            case this.customFields.tags:
-                this.tags = field.value.text.split(/\s*,\s*/i);
-                break;
-            case this.customFields.instances:
-                this.maxInstances = parseInt(field.value.number);
-                break;
-            case this.customFields.googleId:
-                this.googleId = parseInt(field.value.number);
-                break;
-
-
-            case this.customFields.isBeginner:
-                this.isBeginner = field.value.checked === "true";
-                break;
-
-            case this.customFields.isCode:
-                this.categories[categories.CODING] = field.value.checked === "true";
-                break;
-            case this.customFields.isDesign:
-                this.categories[categories.DESIGN] = field.value.checked === "true";
-                break;
-            case this.customFields.isDocs:
-                this.categories[categories.DOCS_TRAINING] = field.value.checked === "true";
-                break;
-            case this.customFields.isOutResearch:
-                this.categories[categories.OUTRESEARCH] = field.value.checked === "true";
-                break;
-            case this.customFields.isQa:
-                this.categories[categories.QA] = field.value.checked === "true";
-                break;
-            default:
-                console.error(`Unknown field type '${field.id}' on card ${this.name}`);
-        }
     }
 
     /**
@@ -312,6 +311,16 @@ class Task {
         } else {
             requester.updateGoogle(this.googleId, data);
         }
+    }
+
+    toString() {
+        let result = [];
+
+        for (let fieldName in this.fields) {
+            result.push(`${fieldName} -> ${this.fields[fieldName].getValue()}`);
+        }
+
+        return result.join("\n");
     }
 }
 
