@@ -10,7 +10,24 @@ class ApiRequester {
         this.googleToken = googleToken;
         this.trelloKey = trelloKey;
         this.trelloToken = trelloToken;
-        this.rateLimit = 200;
+        this.trelloRequests = [];
+        this.requestsPer10Sec = 95;
+        this.requestCount = 0;
+        setInterval(() => {
+            this.requestCount = 0;
+            this.processTrello()
+        }, 10000);
+    }
+
+    /**
+     * Processes as many trello requests as it can.
+     * Once it hits the maximum it pauses until the interval function set in the constructor resets the request counter
+     */
+    processTrello() {
+        while (this.requestCount <= this.requestsPer10Sec && this.trelloRequests.length > 0) {
+            let [payload, resolve] = this.trelloRequests.pop();
+            request(payload).then(resolve)
+        }
     }
 
     /**
@@ -19,7 +36,14 @@ class ApiRequester {
      * @return {Promise} A promise that is resolved with the data
      */
     getListCards(id) {
-        return this.trelloGet(`lists/${id}/cards`);
+        const promise = new Promise(resolve =>
+            this.trelloRequests.unshift([
+                this.buildTrelloGet(`lists/${id}/cards`),
+                resolve
+            ])
+        );
+        this.processTrello();
+        return promise;
     }
 
     /**
@@ -28,7 +52,14 @@ class ApiRequester {
      * @return {Promise} A promise that is resolved with the data
      */
     getCustomFields(card) {
-        return this.trelloGet(`cards/${card}`, "&customFieldItems=true");
+        const promise = new Promise(resolve =>
+            this.trelloRequests.unshift([
+                this.buildTrelloGet(`cards/${card}`, "&customFieldItems=true"),
+                resolve
+            ])
+        );
+        this.processTrello();
+        return promise
     }
 
     /**
@@ -41,45 +72,42 @@ class ApiRequester {
      * @return {Promise} A promise that is fulfilled when the PUT is finished.+
      */
     setCustomField(card, field, type, value) {
-        //TODO: Infer the value for `type` from the type of `value`
         let data = {value: {}};
+        //TODO: Infer the value for `type` from the type of `value`
         data.value[type] = value.toString();
-        return this.trelloPut(`/card/${card}/customField/${field}/item`, data)
-            .catch(error => console.log(`Could not write to card ${card}.\n\tGot '${error}'`));
+        const promise = new Promise(resolve =>
+            this.trelloRequests.unshift(
+                this.buildTrelloPut(`/card/${card}/customField/${field}/item`, data),
+                resolve
+            )
+        );
+        this.processTrello();
+        return promise;
     }
 
     /**
-     * Performs a GET request to the Trello api
-     * @param path The path of the api to call
-     * @param queryArg Any query arguments to be passed in
-     * @return {Promise} A promise that is resolved with the data
+     * Builds the options for a get request to trello
+     * @param path
+     * @param queryArg
+     * @return {{method: string, uri: string, json: boolean}}
      */
-    trelloGet(path, queryArg) {
-        return request({
+    buildTrelloGet(path, queryArg) {
+        return {
             method: `GET`,
             uri: `https://api.trello.com/1/${path}`
             + `?key=${this.trelloKey}&token=${this.trelloToken}${queryArg || ""}`,
             json: true
-        }).promise();
+        };
     }
 
-    /**
-     * Performs a PUT request to the Trello API
-     *
-     * @param path The path of the api to follow
-     * @param data The data to set the body to
-     * @return {Promise} A promise resolved when the PUT is finished
-     */
-    async trelloPut(path, data) {
-        /* We have to wait because of rate limits */
-        await sleep(this.rateLimit);
-        return request({
+    buildTrelloPut(path, data) {
+        return {
             method: 'PUT',
             uri: `https://api.trello.com/1/${path}`
             + `?key=${this.trelloKey}&token=${this.trelloToken}`,
             body: data,
             json: true
-        }).promise();
+        }
     }
 
     /**
