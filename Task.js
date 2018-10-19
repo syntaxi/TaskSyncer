@@ -17,7 +17,7 @@ class TaskField {
      *                  if it is a function, then that function should take in the full data payload
      *                  and return the value to set the field to. The current field value is also passed as an optional
      *                  second paramater
-     * @param initialValue {*} The initial value to set the field to. Default of null
+     * @param [initialValue] {*} The initial value to set the field to. Default of null
      */
     constructor(googleHandler, initialValue) {
         this.parseGoogle = this._loadArgument(googleHandler);
@@ -84,11 +84,11 @@ class TaskField {
 class BasicTaskField extends TaskField {
     /**
      * Loads in the trello field stuff and delegates the google fields to the super constructor
-     * @param googleHandler The google handler
-     * @param trelloHandler If a string, then should be the key of the data in the payload.
+     * @param googleHandler {string|function} The google handler
+     * @param trelloHandler {string|function} If a string, then should be the key of the data in the payload.
      *                      Else should be a function that takes in the payload and optionally the current field value
      *                      and returns the new field value
-     * @param initialValue The initial value to set the field to. Defaults to null
+     * @param [initialValue] {*} The initial value to set the field to. Defaults to null
      */
     constructor(googleHandler, trelloHandler, initialValue) {
         super(googleHandler, initialValue);
@@ -113,12 +113,12 @@ class CustomTaskField extends TaskField {
     /**
      * Loads in the trello field stuff and delegates the google fields to the super constructor
      *
-     * @param googleHandler The google handler
-     * @param fieldId The id of the custom field
-     * @param trelloHandler If a string, should be the type of the custom field data.
+     * @param googleHandler {string|function} The google handler
+     * @param fieldId {string} The id of the custom field
+     * @param trelloHandler {string|function} If a string, should be the type of the custom field data.
      *                      If a function, should take in the field payload and optionally the fields current value
      *                      and return the new value
-     * @param initialValue The initial value to set the field to. Defaults to null.
+     * @param [initialValue] {*} The initial value to set the field to. Defaults to null.
      */
     constructor(googleHandler, fieldId, trelloHandler, initialValue) {
         super(googleHandler, initialValue);
@@ -164,7 +164,7 @@ class CustomTaskField extends TaskField {
     /**
      * Checks if this matches a given custom field
      *
-     * @param field The full custom field payload to check against
+     * @param field {json} The full custom field payload to check against
      * @return {boolean} True if the given custom field matches this
      */
     doesFieldMatch(field) {
@@ -196,7 +196,7 @@ class CustomTaskField extends TaskField {
  */
 class Task {
     constructor() {
-        /* Trello Constants */
+        /* Trello custom field id's */
         this.customFields = {
             isBeginner: "5bb13d35adbb5244eb5b749d",
             days: "5bb13de3b6a0c658dce16fd5",
@@ -216,7 +216,7 @@ class Task {
          * @type {{TaskField}}
          */
         this.fields = {
-            googleId: new CustomTaskField('id', this.customFields.googleId, field => parseInt(field.number)),
+            googleId: new CustomTaskField('id', this.customFields.googleId, 'number'),
             trelloId: new BasicTaskField((data, value) => value || data['private_metadata'], 'id'),
 
             name: new BasicTaskField('name', 'name'),
@@ -227,39 +227,50 @@ class Task {
             maxInstances: new CustomTaskField(
                 'max_instances',
                 this.customFields.instances,
-                field => parseInt(field.number)),
+                'number',
+                1),
             tags: new CustomTaskField('tags',
                 this.customFields.tags,
-                field => field.text.split(/\s*,\s*/i)),
+                field => field.text.split(/\s*,\s*/i),
+                []),
             isBeginner: new CustomTaskField(
                 'is_beginner',
                 this.customFields.isBeginner,
-                field => field.checked === "true"),
+                'boolean',
+                false),
             days: new CustomTaskField(
                 'time_to_complete_in_days',
                 this.customFields.days,
-                field => parseInt(field.number)),
+                'number',
+                3),
+
 
             isCode: new CustomTaskField(
                 data => categories.CODING in data,
                 this.customFields.isCode,
-                field => field.checked === 'true'),
+                'boolean',
+                false),
             isDesign: new CustomTaskField(
                 data => categories.DESIGN in data,
                 this.customFields.isDesign,
-                field => field.checked === 'true'),
+                'boolean',
+                false),
             isDocs: new CustomTaskField(
                 data => categories.DOCS_TRAINING in data,
                 this.customFields.isDocs,
-                field => field.checked === 'true'),
+                'boolean',
+                false),
             isQa: new CustomTaskField(
                 data => categories.QA in data,
                 this.customFields.isQa,
-                field => field.checked === 'true'),
+                'boolean',
+                false),
             isOutResearch: new CustomTaskField(
                 data => categories.OUTRESEARCH in data,
                 this.customFields.isOutResearch,
-                field => field.checked === 'true'),
+                'boolean',
+                false),
+
 
             lastModified: new TaskField('last_modified'),
             claimedCount: new TaskField('claimed_count'),
@@ -269,8 +280,10 @@ class Task {
         };
 
         for (let field in this.fields) {
-            this.__defineGetter__(field, this.fields[field].getValue);
-            this.__defineSetter__(field, this.fields[field].setValue);
+            Object.defineProperty(this, field, {
+                get: this.fields[field].getValue.bind(this.fields[field]),
+                set: this.fields[field].setValue.bind(this.fields[field])
+            });
         }
     }
 
@@ -321,7 +334,6 @@ class Task {
 
     /**
      * Updates this task with the data from the given custom field.
-     * Also removes this field from the lis to of unloaded fields
      *
      * @param field {json} The custom field to load the data from
      */

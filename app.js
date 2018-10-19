@@ -9,7 +9,7 @@ taskList.loadFromGoogle()
         // .then(() => {
         //     console.log("Done loading.\n\n");
         //     taskList.writeToGoogle()
-            .then(() => console.log("\n\nDone."))
+            .then(() => console.log("\n\nDone!\n"))
         // })
-    );
+    // );
 "halt"; // Provides a breakpoint after statements finished
