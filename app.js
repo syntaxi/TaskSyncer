@@ -11,5 +11,5 @@ taskList.loadFromGoogle()
         //     taskList.writeToGoogle()
             .then(() => console.log("\n\nDone!\n"))
         // })
-    // );
+    );
 "halt"; // Provides a breakpoint after statements finished
