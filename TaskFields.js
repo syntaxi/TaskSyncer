@@ -28,7 +28,6 @@ class TaskField {
      *
      * @param argument The handler argument
      * @return {function} A function that takes in the data and returns the value for this field
-     * @private
      */
     _loadArgument(argument) {
         if (typeof argument === "string") {
@@ -106,6 +105,7 @@ class TaskField {
  * Represents a task field where the data is located in the main card payload.
  *
  * @see TaskField
+ * @extends TaskField
  */
 class BasicTaskField extends TaskField {
     /**
@@ -136,6 +136,7 @@ class BasicTaskField extends TaskField {
  * Represents a task field where the data is located in a custom field
  *
  * @see TaskField
+ * @extends TaskField
  */
 class CustomTaskField extends TaskField {
     /**

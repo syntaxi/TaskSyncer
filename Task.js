@@ -1,4 +1,8 @@
 const {categories, writeTypes} = require('./Globals');
+/**
+ * The main requester to use for api calls
+ * @type {ApiRequester}
+ */
 const requester = require('./ApiRequester');
 const Promise = require('bluebird');
 const {TaskField, BasicTaskField, CustomTaskField} = require("./TaskFields");
@@ -295,7 +299,7 @@ class Task {
         if (!this.googleId) {
             console.warn(`Making new google task for ${this.name} (${this.trelloId})`);
             return new Promise(resolve => {
-                requester.googlePost(data).then(body => {
+                requester.createGoogleTask(data).then(body => {
                     /* Store the google ID */
                     this.fields.googleId.loadFromGoogle(body);
                     /* Write the google task id to trello*/

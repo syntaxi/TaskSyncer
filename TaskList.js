@@ -78,13 +78,12 @@ class TaskList {
         const outerList = this;
         /* Make a new promise */
         return new Promise(resolve => {
-
             /* This needs to be a nested function to have access to the resolve
-             * And to not make a new promise each recusion*/
+             * And to not make a new promise each recusion */
             function innerRecurse(page) {
                 console.log(`Requesting page ${page} from google`);
                 /* Request the tasks */
-                requester.googleGet('tasks', 'page=' + page)
+                requester.getTaskPage(page)
                     .then(body => {
                         outerList._loadFromGoogle(body);
                         if (body.next != null) {
@@ -153,14 +152,13 @@ class TaskList {
      *
      * @return {Promise} A promise that is resolved when all tasks have been written
      */
-    async writeToGoogle(writeType) {
+    writeToGoogle(writeType) {
         console.log("Writing to Google");
         const promises = [];
-        for (let i = 0; i < this.tasks.length; i++) {
-            const promise = await this.tasks[i].writeToGoogle(writeType);
-            promises.push(promise);
-        }
-        return Promise.all(promises)
+        this.tasks.forEach(task =>
+            promises.push(task.writeToGoogle(writeType))
+        );
+        return Promise.all(promises);
     }
 
     /**
@@ -172,14 +170,13 @@ class TaskList {
      * @param writeType {number}
      * @return {Promise} A promise that is resolved when all tasks have been written
      */
-    async writeToTrello(writeType) {
+    writeToTrello(writeType) {
         console.log("Writing to Trello");
         const promises = [];
-        for (let i = 0; i < this.tasks.length; i++) {
-            const promise = await this.tasks[i].writeToTrello(writeType);
-            promises.push(promise);
-        }
-        return Promise.all(promises)
+        this.tasks.forEach(task =>
+            promises.push(task.writeToTrello(writeType))
+        );
+        return Promise.all(promises);
     }
 
     /**

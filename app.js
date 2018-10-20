@@ -1,19 +1,25 @@
 "use strict";
 const taskList = require('./TaskList');
 const {writeTypes} = require('./Globals');
+const requester = require('./ApiRequester');
 
 /* First we load from Google */
 taskList.loadFromGoogle()
-/* Then we overwrite from Trello. */
     .then(() => {
+        /* Then we overwrite from Trello. */
         taskList.resetStatus();
         taskList.loadFromTrello()
-        /* Then we write what wasn't updated to Trello (ie blank fields) */
             .then(() => {
+                /* Then we write what wasn't updated to Trello (ie blank fields) */
                 console.log("Done loading.\n\n");
                 taskList.writeToTrello(writeTypes.ONLY_UNCHANGED)
                     .then(() => {
-                        console.log("\n\nDone!\n");
+                        /* Then we write the tasks to Google */
+                        taskList.writeToGoogle(writeTypes.ALL)
+                            .then(() => {
+                                console.log("\n\nDone!\n");
+                                requester.stop();
+                            });
                     });
             });
     });

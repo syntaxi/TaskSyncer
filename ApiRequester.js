@@ -11,11 +11,30 @@ class ApiRequester {
         this.trelloKey = trelloKey;
         this.trelloToken = trelloToken;
         this.trelloRequests = [];
-        this.requestsPer10Sec = 95;
-        this.requestCount = 0;
-        setInterval(() => {
-            this.requestCount = 0;
+        this.trelloLimit = 95;
+        this.trelloCount = 0;
+        this.googleRequests = [];
+        this.googleLimit = 95;
+        this.googleCount = 0;
+        this.start();
+    }
+
+    /**
+     * Stops the intervals from ticking.
+     */
+    stop() {
+        clearInterval(this.trelloInterval);
+        clearInterval(this.googleInterval);
+    }
+
+    start() {
+        this.trelloInterval = setInterval(() => {
+            this.trelloCount = 0;
             this.processTrello()
+        }, 10000);
+        this.googleInterval = setInterval(() => {
+            this.googleCount = 0;
+            this.processGoogle()
         }, 10000);
     }
 
@@ -24,7 +43,7 @@ class ApiRequester {
      * Once it hits the maximum it pauses until the interval function set in the constructor resets the request counter
      */
     processTrello() {
-        while (this.requestCount <= this.requestsPer10Sec && this.trelloRequests.length > 0) {
+        while (this.trelloCount <= this.trelloLimit && this.trelloRequests.length > 0) {
             let [payload, resolve] = this.trelloRequests.pop();
             request(payload).then(resolve)
         }
@@ -121,6 +140,17 @@ class ApiRequester {
     }
 
     /**
+     * Processes as many google requests as it can.
+     * Once it hits the maximum it pauses until the interval function set in the constructor resets the request counter
+     */
+    processGoogle() {
+        while (this.googleCount <= this.googleLimit && this.googleRequests.length > 0) {
+            let [payload, resolve] = this.googleRequests.pop();
+            request(payload).then(resolve)
+        }
+    }
+
+    /**
      * Updates a task in the Google API
      *
      * @param task The id of the task to update
@@ -128,8 +158,33 @@ class ApiRequester {
      * @return {Promise} A promise resolved when the PUT is finished
      */
     updateGoogle(task, data) {
-        return this.googlePut(task, data)
-            .catch(error => console.log(`Could not write to card ${task}.\n\tGot '${error}'`));
+        const promise = new Promise(resolve =>
+            this.googleRequests.unshift(
+                [this.buildGooglePut(task, data), resolve]
+            )
+        );
+        this.processGoogle();
+        return promise;
+    }
+
+    createGoogleTask(data) {
+        const promise = new Promise(resolve =>
+            this.googleRequests.unshift(
+                [this.buildGooglePost(data), resolve]
+            )
+        );
+        this.processGoogle();
+        return promise;
+    }
+
+    getTaskPage(pageNum) {
+        const promise = new Promise(resolve =>
+            this.googleRequests.unshift(
+                [this.buildGoogleGet('tasks', 'page=' + pageNum), resolve]
+            )
+        );
+        this.processGoogle();
+        return promise;
     }
 
     /**
@@ -137,28 +192,25 @@ class ApiRequester {
      *
      * @param item The area of the api to make the request to
      * @param queryArg Any query arg to include
-     * @return {Promise} A promise that is resolved with the data
      */
-    googleGet(item, queryArg) {
-        return request({
+    buildGoogleGet(item, queryArg) {
+        return {
             method: 'GET',
             uri: `https://codein.withgoogle.com/api/program/current/${item}/${queryArg ? "?" : ""}${queryArg}`,
             auth: {
                 'bearer': this.googleToken
             },
             json: true
-
-        }).promise();
+        };
     }
 
     /**
      * Makes a PUT request to the google api
      * @param taskId The id of the task to PUT to
      * @param data The data to sent to the task
-     * @return {Promise} A promise that is resolved with the data
      */
-    googlePut(taskId, data) {
-        return request({
+    buildGooglePut(taskId, data) {
+        return {
             method: 'PUT',
             uri: `https://codein.withgoogle.com/api/program/current/tasks/${taskId}/`,
             auth: {
@@ -166,16 +218,15 @@ class ApiRequester {
             },
             body: data,
             json: true
-        }).promise();
+        };
     }
 
     /**
      * Makes a POST request to the google api
      * @param data The data to sent to the task
-     * @return {Promise} A promise that is resolved with the data
      */
-    googlePost(data) {
-        return request({
+    buildGooglePost(data) {
+        return {
             method: 'POST',
             uri: `https://codein.withgoogle.com/api/program/current/tasks/`,
             auth: {
@@ -183,7 +234,7 @@ class ApiRequester {
             },
             body: data,
             json: true
-        }).promise();
+        };
     }
 }
 
