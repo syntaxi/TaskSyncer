@@ -10,10 +10,15 @@ const categories = {
     OUTRESEARCH: 5
 };
 
+/**
+ *  The different ways in which fields written to trello can be filtered.
+ * @type {{ONLY_UPDATED: number, ONLY_UNCHANGED: number, ALL: number, SPECIFIC:number}}
+ */
 const writeTypes = {
     ONLY_UPDATED: 1,
     ONLY_UNCHANGED: 2,
-    ALL: 3
+    ALL: 3,
+    SPECIFIC: 4
 };
 
 module.exports = {

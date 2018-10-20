@@ -1,5 +1,6 @@
 "use strict";
 const taskList = require('./TaskList');
+const {writeTypes} = require('./Globals');
 
 /* First we load from Google */
 taskList.loadFromGoogle()
@@ -10,7 +11,7 @@ taskList.loadFromGoogle()
         /* Then we write what wasn't updated to Trello (ie blank fields) */
             .then(() => {
                 console.log("Done loading.\n\n");
-                taskList.writeToTrello()
+                taskList.writeToTrello(writeTypes.ONLY_UNCHANGED)
                     .then(() => {
                         console.log("\n\nDone!\n");
                     });

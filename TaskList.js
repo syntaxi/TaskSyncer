@@ -169,6 +169,7 @@ class TaskList {
      *
      * Note this is slow to avoid the api rate limits. Operates at a rate of 1 call per 0.3s
      *
+     * @param writeType {number}
      * @return {Promise} A promise that is resolved when all tasks have been written
      */
     async writeToTrello(writeType) {

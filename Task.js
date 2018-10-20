@@ -240,9 +240,11 @@ class Task {
      *
      * _This will overwrite the current card information_
      *
+     * @param writeType {number} The write type to use to filter fields
+     * @param [fieldName] {string} The names of the specific field to use (If a appropriate write type is given)
      * @return {Promise} A promise that is resolved when all the fields have been written to
      */
-    async writeToTrello(writeType) {
+    async writeToTrello(writeType, fieldName) {
         console.log(`Writing "${this.name}" (${this.trelloId}) to trello`);
         const promises = [];
         if (this.trelloId) {
@@ -261,6 +263,9 @@ class Task {
                     break;
                 case writeTypes.ALL:
                     fields = Object.values(this.fields);
+                    break;
+                case writeTypes.SPECIFIC:
+                    fields = [this.fields[fieldName]];
                     break;
                 default:
                     throw TypeError("Unknown write type for trello: " + writeType);
@@ -289,14 +294,17 @@ class Task {
 
         if (!this.googleId) {
             console.warn(`Making new google task for ${this.name} (${this.trelloId})`);
-            requester.googlePost(data).then(body => {
-                this.fields.googleId.loadFromGoogle(data);
-                this.googleId = body.id;
-                /* We write to trello to write the google task id */
-                this.writeToTrello();
+            return new Promise(resolve => {
+                requester.googlePost(data).then(body => {
+                    /* Store the google ID */
+                    this.fields.googleId.loadFromGoogle(body);
+                    /* Write the google task id to trello*/
+                    this.writeToTrello(writeTypes.SPECIFIC, 'googleId')
+                        .then(resolve);
+                });
             });
         } else {
-            requester.updateGoogle(this.googleId, data);
+            return requester.updateGoogle(this.googleId, data);
         }
     }
 
