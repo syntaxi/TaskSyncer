@@ -17,8 +17,8 @@ class TaskField {
      * @param [initialValue] {*} The initial value to set the field to. Default of null
      */
     constructor(googleParser, initialValue, googleWriter) {
-        this.parseGoogle = this._loadArgument(googleParser);
-        this.outputGoogle = googleWriter ? googleWriter : this._writeArgument(googleParser);
+        this.parseGoogle = this._buildParser(googleParser);
+        this.outputGoogle = googleWriter ? googleWriter : this._buildWriter(googleParser);
         this.value = initialValue;
         this.wasUpdated = false;
     }
@@ -29,7 +29,7 @@ class TaskField {
      * @param argument The handler argument
      * @return {function} A function that takes in the data and returns the value for this field
      */
-    _loadArgument(argument) {
+    _buildParser(argument) {
         if (typeof argument === "string") {
             return data => data[argument];
         } else if (typeof argument === "function") {
@@ -46,7 +46,7 @@ class TaskField {
      * @return {function} A function that takes in the data and returns the data with this field added
      * @private
      */
-    _writeArgument(argument) {
+    _buildWriter(argument) {
         if (typeof argument === "string") {
             return data => data[argument] = this.value;
         } else if (typeof argument === "function") {
@@ -86,6 +86,10 @@ class TaskField {
         return this.outputGoogle(data)
     }
 
+    writeToTrello(data) {
+
+    }
+
     /**
      * @return {*} The value contained in this field
      */
@@ -119,7 +123,7 @@ class BasicTaskField extends TaskField {
      */
     constructor(googleHandler, trelloHandler, initialValue, googleWriter) {
         super(googleHandler, initialValue, googleWriter);
-        this.parseTrello = this._loadArgument(trelloHandler);
+        this.parseTrello = this._buildParser(trelloHandler);
     }
 
     /**
@@ -149,12 +153,14 @@ class CustomTaskField extends TaskField {
      *                      and return the new value
      * @param [initialValue] {*} The initial value to set the field to. Defaults to null.
      * @param [googleWriter] {function}
+     * @param [trelloWriter] {function}
      */
-    constructor(googleHandler, fieldId, trelloHandler, initialValue, googleWriter) {
+    constructor(googleHandler, fieldId, trelloHandler, initialValue, googleWriter, trelloWriter) {
         super(googleHandler, initialValue, googleWriter);
         this.fieldId = fieldId;
         this.type = typeof trelloHandler;
-        this.parseTrello = this._parseTrelloHandler(trelloHandler);
+        this.parseTrello = this._buildTrelloParser(trelloHandler);
+        this.trelloWriter = trelloWriter || this._buildTrelloWriter()
     }
 
     /**
@@ -164,7 +170,7 @@ class CustomTaskField extends TaskField {
      * @return {function} The parsing function
      * @private
      */
-    _parseTrelloHandler(trelloHandler) {
+    _buildTrelloParser(trelloHandler) {
         if (typeof trelloHandler === "string") {
             switch (trelloHandler) {
                 case 'number':
@@ -181,13 +187,18 @@ class CustomTaskField extends TaskField {
         }
     }
 
+    _buildTrelloWriter() {
+        return value => value
+    }
+
     /**
      * Called if the field was not set on the card. Handles the default value for the field
      * Useful for checkboxes where a 'false' value simply means the field doesn't show up
      */
     handleNotPresent() {
         if (this.type === 'boolean') {
-            this.setValue(false)
+            this.setValue(false);
+            this.wasUpdated = true;
         }
     }
 
@@ -209,6 +220,10 @@ class CustomTaskField extends TaskField {
     loadFromTrello(field) {
         this.value = this.parseTrello(field.value, this.value);
         this.wasUpdated = true;
+    }
+
+    writeToTrello() {
+        return this.trelloWriter(this.value)
     }
 
     /**

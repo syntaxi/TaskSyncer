@@ -40,7 +40,7 @@ class Task {
              * @name Task#googleId
              * @name Task#fields#googleId
              */
-            googleId: new CustomTaskField('id', this.customFields.googleId, 'number'),
+            googleId: new CustomTaskField('id', this.customFields.googleId, 'number', 0),
             /**
              * @type {string}
              * @name Task#trelloId
@@ -48,7 +48,7 @@ class Task {
             trelloId: new BasicTaskField(
                 (data, value) => value || data['private_metadata'],
                 'id',
-                null,
+                "",
                 data => data.private_metadata = this.trelloId),
 
             /**
@@ -81,7 +81,9 @@ class Task {
                 'tags',
                 this.customFields.tags,
                 field => field.text.split(/\s*,\s*/i),
-                []),
+                [],
+                null,
+                value => value.join(", ")),
             /**
              * @type {boolean}
              * @name Task#isBeginner
@@ -249,7 +251,6 @@ class Task {
      * @return {Promise} A promise that is resolved when all the fields have been written to
      */
     async writeToTrello(writeType, fieldName) {
-        console.log(`Writing "${this.name}" (${this.trelloId}) to trello`);
         const promises = [];
         if (this.trelloId) {
             let fields;
@@ -266,7 +267,8 @@ class Task {
                         .filter(field => field.wasUpdated);
                     break;
                 case writeTypes.ALL:
-                    fields = Object.values(this.fields);
+                    fields = Object.values(this.fields)
+                        .filter(field => field instanceof CustomTaskField);
                     break;
                 case writeTypes.SPECIFIC:
                     fields = [this.fields[fieldName]];
@@ -274,6 +276,7 @@ class Task {
                 default:
                     throw TypeError("Unknown write type for trello: " + writeType);
             }
+            console.log(`Writing "${this.name}" (${this.trelloId}) to trello: ${fields.length} fields`);
 
             /* Write the fields selected */
             fields.forEach(

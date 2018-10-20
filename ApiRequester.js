@@ -45,7 +45,9 @@ class ApiRequester {
     processTrello() {
         while (this.trelloCount <= this.trelloLimit && this.trelloRequests.length > 0) {
             let [payload, resolve] = this.trelloRequests.pop();
-            request(payload).then(resolve)
+            request(payload).then(resolve);
+            this.trelloCount += 1;
+            console.log("Trello Calls: " + this.trelloCount);
         }
     }
 
@@ -93,22 +95,22 @@ class ApiRequester {
         let data = {value: {}};
         switch (typeof value) {
             case 'boolean':
-                data.value.checked = value;
+                data.value.checked = value.toString();
                 break;
             case 'string':
-                data.value.text = value;
+                data.value.text = value.toString();
                 break;
             case 'number':
-                data.value.number = value;
+                data.value.number = value.toString();
                 break;
             default:
                 throw  TypeError("Unknown type for trello custom field: " + typeof value);
         }
         const promise = new Promise(resolve =>
-            this.trelloRequests.unshift(
+            this.trelloRequests.unshift([
                 this.buildTrelloPut(`/card/${card}/customField/${field}/item`, data),
                 resolve
-            )
+            ])
         );
         this.processTrello();
         return promise;
@@ -146,7 +148,9 @@ class ApiRequester {
     processGoogle() {
         while (this.googleCount <= this.googleLimit && this.googleRequests.length > 0) {
             let [payload, resolve] = this.googleRequests.pop();
-            request(payload).then(resolve)
+            request(payload).then(resolve);
+            this.googleCount += 1;
+            console.log("Google Calls: " + this.googleCount);
         }
     }
 
