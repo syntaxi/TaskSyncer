@@ -19,7 +19,8 @@ class TaskField {
     constructor(googleParser, initialValue, googleWriter) {
         this.parseGoogle = this._loadArgument(googleParser);
         this.outputGoogle = googleWriter ? googleWriter : this._writeArgument(googleParser);
-        this.value = initialValue || null;
+        this.value = initialValue;
+        this.wasUpdated = false;
     }
 
     /**
@@ -63,7 +64,8 @@ class TaskField {
      * @param data The raw google task payload
      */
     loadFromGoogle(data) {
-        this.value = this.parseGoogle(data, this.value)
+        this.value = this.parseGoogle(data, this.value);
+        this.wasUpdated = true;
     }
 
     /**
@@ -113,9 +115,10 @@ class BasicTaskField extends TaskField {
      *                      Else should be a function that takes in the payload and optionally the current field value
      *                      and returns the new field value
      * @param [initialValue] {*} The initial value to set the field to. Defaults to null
+     * @param [googleWriter] {function}
      */
-    constructor(googleHandler, trelloHandler, initialValue) {
-        super(googleHandler, initialValue);
+    constructor(googleHandler, trelloHandler, initialValue, googleWriter) {
+        super(googleHandler, initialValue, googleWriter);
         this.parseTrello = this._loadArgument(trelloHandler);
     }
 
@@ -124,7 +127,8 @@ class BasicTaskField extends TaskField {
      * @param data The card payload
      */
     loadFromTrello(data) {
-        this.value = this.parseTrello(data)
+        this.value = this.parseTrello(data);
+        this.wasUpdated = true;
     }
 }
 
@@ -143,9 +147,10 @@ class CustomTaskField extends TaskField {
      *                      If a function, should take in the field payload and optionally the fields current value
      *                      and return the new value
      * @param [initialValue] {*} The initial value to set the field to. Defaults to null.
+     * @param [googleWriter] {function}
      */
-    constructor(googleHandler, fieldId, trelloHandler, initialValue) {
-        super(googleHandler, initialValue, null);
+    constructor(googleHandler, fieldId, trelloHandler, initialValue, googleWriter) {
+        super(googleHandler, initialValue, googleWriter);
         this.fieldId = fieldId;
         this.type = typeof trelloHandler;
         this.parseTrello = this._parseTrelloHandler(trelloHandler);
@@ -201,7 +206,8 @@ class CustomTaskField extends TaskField {
      * @param field The full payload for the custom field.
      */
     loadFromTrello(field) {
-        this.value = this.parseTrello(field.value, this.value)
+        this.value = this.parseTrello(field.value, this.value);
+        this.wasUpdated = true;
     }
 
     /**

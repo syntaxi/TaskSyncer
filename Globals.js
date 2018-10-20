@@ -10,6 +10,13 @@ const categories = {
     OUTRESEARCH: 5
 };
 
+const writeTypes = {
+    ONLY_UPDATED: 1,
+    ONLY_UNCHANGED: 2,
+    ALL: 3
+};
+
 module.exports = {
-    categories:categories
+    categories: categories,
+    writeTypes: writeTypes
 };

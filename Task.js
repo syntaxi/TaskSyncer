@@ -1,6 +1,7 @@
-const {categories} = require('./Globals');
+const {categories, writeTypes} = require('./Globals');
 const requester = require('./ApiRequester');
 const Promise = require('bluebird');
+const {TaskField, BasicTaskField, CustomTaskField} = require("./TaskFields");
 
 /**
  * Represents a single task.
@@ -24,101 +25,154 @@ class Task {
             isOutResearch: "5bb13dbc351a9c4e5c93cd1f"
         };
 
+
         /**
          * All the fields for a task
          * @type {{TaskField}}
          */
         this.fields = {
+            /**
+             * @type {number}
+             * @name Task#googleId
+             * @name Task#fields#googleId
+             */
             googleId: new CustomTaskField('id', this.customFields.googleId, 'number'),
-            trelloId: new BasicTaskField((data, value) => value || data['private_metadata'], 'id'),
+            /**
+             * @type {string}
+             * @name Task#trelloId
+             */
+            trelloId: new BasicTaskField(
+                (data, value) => value || data['private_metadata'],
+                'id',
+                null,
+                data => data.private_metadata = this.trelloId),
 
-            name: new BasicTaskField('name', 'name'),
-            description: new BasicTaskField('description', 'desc'),
-            status: new TaskField('status'),//TODO: Add this to trello cards
-            mentors: new TaskField('mentors'),//TODO: Add this to trello cards
-            externalUrl: new TaskField('external_url'), //TODO: Add this to trello cards
+            /**
+             * @type {string}
+             * @name Task#name
+             */
+            name: new BasicTaskField('name', 'name', ""),
+            /**
+             * @type {string}
+             * @name Task#description
+             */
+            description: new BasicTaskField('description', 'desc', ""),
+            status: new TaskField('status', 1),//TODO: Add this to trello cards
+            mentors: new TaskField('mentors', []),//TODO: Add this to trello cards
+            externalUrl: new TaskField('external_url', ""), //TODO: Add this to trello cards
+            /**
+             * @type {number}
+             * @name Task#maxInstances
+             */
             maxInstances: new CustomTaskField(
                 'max_instances',
                 this.customFields.instances,
                 'number',
                 1),
-            tags: new CustomTaskField('tags',
+            /**
+             * @type {[string]}
+             * @name Task#days
+             */
+            tags: new CustomTaskField(
+                'tags',
                 this.customFields.tags,
                 field => field.text.split(/\s*,\s*/i),
                 []),
+            /**
+             * @type {boolean}
+             * @name Task#isBeginner
+             */
             isBeginner: new CustomTaskField(
                 'is_beginner',
                 this.customFields.isBeginner,
                 'boolean',
                 false),
+            /**
+             * @type {number}
+             * @name Task#days
+             */
             days: new CustomTaskField(
                 'time_to_complete_in_days',
                 this.customFields.days,
                 'number',
                 3),
 
-
+            /**
+             * @type {boolean}
+             * @name Task#isCode
+             */
             isCode: new CustomTaskField(
                 data => categories.CODING in data,
                 this.customFields.isCode,
                 'boolean',
                 false,
                 data => {
-                    if (this.isCode) {
-                        data.push(categories.CODING);
-                    }
-                    return data;
+                    data.categories = data.categories || [];
+                    if (this.isCode)
+                        data.categories.push(categories.CODING);
                 }),
+            /**
+             * @type {boolean}
+             * @name Task#isDesign
+             */
             isDesign: new CustomTaskField(
                 data => categories.DESIGN in data,
                 this.customFields.isDesign,
                 'boolean',
                 false,
                 data => {
-                    if (this.isDesign) {
-                        data.push(categories.DESIGN);
-                    }
-                    return data;
+                    data.categories = data.categories || [];
+                    if (this.isDesign)
+                        data.categories.push(categories.DESIGN);
                 }),
+            /**
+             * @type {boolean}
+             * @name Task#isDocs
+             */
             isDocs: new CustomTaskField(
                 data => categories.DOCS_TRAINING in data,
                 this.customFields.isDocs,
                 'boolean',
                 false,
                 data => {
-                    if (this.isDocs) {
-                        data.push(categories.DOCS_TRAINING);
-                    }
-                    return data;
+                    data.categories = data.categories || [];
+                    if (this.isDocs)
+                        data.categories.push(categories.DOCS_TRAINING);
                 }),
+            /**
+             * @type {boolean}
+             * @name Task#isQa
+             */
             isQa: new CustomTaskField(
                 data => categories.QA in data,
                 this.customFields.isQa,
                 'boolean',
                 false,
                 data => {
-                    if (this.isQa) {
-                        data.push(categories.QA);
-                    }
-                    return data;
+                    data.categories = data.categories || [];
+                    if (this.isQa)
+                        data.categories.push(categories.QA);
                 }),
+            /**
+             * @type {boolean}
+             * @name Task#isOutResearch
+             */
             isOutResearch: new CustomTaskField(
                 data => categories.OUTRESEARCH in data,
                 this.customFields.isOutResearch,
                 'boolean',
                 false,
                 data => {
-                    if (this.isOutResearch) {
-                        data.push(categories.OUTRESEARCH);
-                    }
-                    return data;
+                    data.categories = data.categories || [];
+                    if (this.isOutResearch)
+                        data.categories.push(categories.OUTRESEARCH);
                 }),
 
 
-            lastModified: new TaskField('last_modified'),
-            claimedCount: new TaskField('claimed_count'),
-            availableCount: new TaskField('available_count'),
-            completedCount: new TaskField('completed_count')
+            lastModified: new TaskField('last_modified', 0),
+            claimedCount: new TaskField('claimed_count', 0),
+            availableCount: new TaskField('available_count', 1),
+            completedCount: new TaskField('completed_count', 0)
 
         };
 
@@ -146,18 +200,9 @@ class Task {
      * Makes further api calls to obtain the custom field data
      *
      * @param data {json} The Trello card data to load in
-     * @return {Promise} Returns a new promise that is only finished when all the data has been loaded
+     * @return {Promise} A new promise that is only finished when all the data has been loaded
      */
     loadFromTrello(data) {
-        /**
-         * Loads the data from a trello payload.
-         * This is the result from querying the card.
-         *
-         * Makes further calls to the api in order to get the data for each of the custom fields
-         *
-         * Returns a promise that only activates when all fields have been requested
-         */
-
         /* Load all the basic fields */
         Object.values(this.fields)
             .filter(value => value instanceof BasicTaskField)
@@ -185,7 +230,7 @@ class Task {
         /* Only process fields linked with a Custom Field */
             .filter(taskField => taskField instanceof CustomTaskField)
             /* Only process field that match this field's id */
-            .filter(taskField => taskField.doesFieldMatch(field))
+            .filter(value => value.doesFieldMatch(field))
             /* Load the data for each remaining field */
             .forEach(taskField => taskField.loadFromTrello(field));
     }
@@ -197,23 +242,34 @@ class Task {
      *
      * @return {Promise} A promise that is resolved when all the fields have been written to
      */
-    async writeToTrello() {
+    async writeToTrello(writeType) {
         console.log(`Writing "${this.name}" (${this.trelloId}) to trello`);
         const promises = [];
         if (this.trelloId) {
-            //TODO: This is really ugly
-            /* Set custom fields */
-            await promises.push(requester.setCustomField(this.trelloId, this.customFields.isBeginner, 'checked', this.isBeginner));
+            let fields;
+            /* Using the write type, work out what fields to write */
+            switch (writeType) {
+                case writeTypes.ONLY_UNCHANGED:
+                    fields = Object.values(this.fields)
+                        .filter(field => field instanceof CustomTaskField)
+                        .filter(field => !field.wasUpdated);
+                    break;
+                case writeTypes.ONLY_UPDATED:
+                    fields = Object.values(this.fields)
+                        .filter(field => field instanceof CustomTaskField)
+                        .filter(field => field.wasUpdated);
+                    break;
+                case writeTypes.ALL:
+                    fields = Object.values(this.fields);
+                    break;
+                default:
+                    throw TypeError("Unknown write type for trello: " + writeType);
+            }
 
-            await promises.push(requester.setCustomField(this.trelloId, this.customFields.isQa, 'checked', categories.QA in this.categories));
-            await promises.push(requester.setCustomField(this.trelloId, this.customFields.isOutResearch, 'checked', categories.OUTRESEARCH in this.categories));
-            await promises.push(requester.setCustomField(this.trelloId, this.customFields.isDocs, 'checked', categories.DOCS_TRAINING in this.categories));
-            await promises.push(requester.setCustomField(this.trelloId, this.customFields.isDesign, 'checked', categories.DESIGN in this.categories));
-            await promises.push(requester.setCustomField(this.trelloId, this.customFields.isCode, 'checked', categories.CODING in this.categories));
-
-            await promises.push(requester.setCustomField(this.trelloId, this.customFields.googleId, 'number', this.googleId));
-            await promises.push(requester.setCustomField(this.trelloId, this.customFields.instances, 'number', this.maxInstances));
-
+            /* Write the fields selected */
+            fields.forEach(
+                field => promises.push(
+                    requester.setCustomField(this.trelloId, field.fieldId, field.writeToTrello())));
         } else {
             console.error("Cannot write. Have no trello id")
         }
@@ -228,38 +284,13 @@ class Task {
     writeToGoogle() {
         let data = {};
         for (let field in this.fields) {
-            data = field.writeToGoogle(data)
-        }
-        data = {
-            id: this.googleId,
-            name: this.name,
-            description: this.description,
-            status: this.status,
-            max_instances: this.maxInstances,
-            is_beginner: this.isBeginner,
-            time_to_complete_in_days: this.days,
-            external_url: this.externalUrl,
-
-            last_modified: this.lastModified,
-            claimed_count: this.claimedCount,
-            available_count: this.availableCount,
-            completed_count: this.completedCount,
-
-            private_metadata: this.trelloId,
-
-            mentors: this.mentors,
-            tags: this.tags,
-            categories: []
-        };
-        for (let category in this.categories) {
-            if (this.categories[category]) {
-                data.categories.push(category)
-            }
+            this.fields[field].writeToGoogle(data)
         }
 
         if (!this.googleId) {
             console.warn(`Making new google task for ${this.name} (${this.trelloId})`);
             requester.googlePost(data).then(body => {
+                this.fields.googleId.loadFromGoogle(data);
                 this.googleId = body.id;
                 /* We write to trello to write the google task id */
                 this.writeToTrello();
@@ -269,13 +300,20 @@ class Task {
         }
     }
 
+    /**
+     * Resets the 'updated' status on all fields
+     */
+    resetStatus() {
+        for (let field in this.fields) {
+            this.fields[field].wasUpdated = false;
+        }
+    }
+
     toString() {
         let result = [];
-
         for (let fieldName in this.fields) {
             result.push(`${fieldName} -> ${this.fields[fieldName].getValue()}`);
         }
-
         return result.join("\n");
     }
 }

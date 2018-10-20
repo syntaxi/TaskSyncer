@@ -58,6 +58,7 @@ class TaskList {
         let index = this.tasks.findIndex((data) => {
             return data.trelloId === id
         });
+
         /* Make new task if one doesn't exist */
         if (index === -1) {
             this.tasks.push(new Task());
@@ -79,7 +80,7 @@ class TaskList {
         return new Promise(resolve => {
 
             /* This needs to be a nested function to have access to the resolve
-             * And to be able to not make a new promise each recusion*/
+             * And to not make a new promise each recusion*/
             function innerRecurse(page) {
                 console.log(`Requesting page ${page} from google`);
                 /* Request the tasks */
@@ -152,11 +153,11 @@ class TaskList {
      *
      * @return {Promise} A promise that is resolved when all tasks have been written
      */
-    async writeToGoogle() {
+    async writeToGoogle(writeType) {
         console.log("Writing to Google");
         const promises = [];
         for (let i = 0; i < this.tasks.length; i++) {
-            const promise = await this.tasks[i].writeToGoogle();
+            const promise = await this.tasks[i].writeToGoogle(writeType);
             promises.push(promise);
         }
         return Promise.all(promises)
@@ -170,14 +171,21 @@ class TaskList {
      *
      * @return {Promise} A promise that is resolved when all tasks have been written
      */
-    async writeToTrello() {
+    async writeToTrello(writeType) {
         console.log("Writing to Trello");
         const promises = [];
         for (let i = 0; i < this.tasks.length; i++) {
-            const promise = await this.tasks[i].writeToTrello();
+            const promise = await this.tasks[i].writeToTrello(writeType);
             promises.push(promise);
         }
         return Promise.all(promises)
+    }
+
+    /**
+     * Resets all the 'edited' status on all the fields on all the tasks.
+     */
+    resetStatus() {
+        this.tasks.forEach(task => task.resetStatus());
     }
 }
 

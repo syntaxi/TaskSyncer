@@ -67,14 +67,24 @@ class ApiRequester {
      *
      * @param card The id of the card to set the field on
      * @param field The id of the field to set
-     * @param type The type of the value
-     * @param value The value to set to
+     * @param value The value to set to the field to
      * @return {Promise} A promise that is fulfilled when the PUT is finished.+
      */
-    setCustomField(card, field, type, value) {
+    setCustomField(card, field, value) {
         let data = {value: {}};
-        //TODO: Infer the value for `type` from the type of `value`
-        data.value[type] = value.toString();
+        switch (typeof value) {
+            case 'boolean':
+                data.value.checked = value;
+                break;
+            case 'string':
+                data.value.text = value;
+                break;
+            case 'number':
+                data.value.number = value;
+                break;
+            default:
+                throw  TypeError("Unknown type for trello custom field: " + typeof value);
+        }
         const promise = new Promise(resolve =>
             this.trelloRequests.unshift(
                 this.buildTrelloPut(`/card/${card}/customField/${field}/item`, data),
@@ -175,19 +185,6 @@ class ApiRequester {
             json: true
         }).promise();
     }
-}
-
-/**
- * Returns a promise that resolves after the specified time.
- * To be used with `await sleep(<time>)` to pause
- *
- * @param ms The number of milliseconds to wait for
- * @return {Promise<any>}
- */
-function sleep(ms) {
-    return new Promise(resolve => {
-        setTimeout(() => resolve(), ms);
-    });
 }
 
 module.exports = new ApiRequester(tokens.googleToken,
