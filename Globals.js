@@ -16,9 +16,11 @@ const categories = {
  */
 const writeTypes = {
     ONLY_UPDATED: 1,
-    ONLY_UNCHANGED: 2,
-    ALL: 3,
-    SPECIFIC: 4
+    ONLY_CHANGED: 2,
+    ONLY_UNUPDATED: 3,
+    ONLY_UNCHANGED: 4,
+    ALL: 5,
+    SPECIFIC: 6
 };
 
 module.exports = {

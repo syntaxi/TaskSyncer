@@ -21,6 +21,7 @@ class TaskField {
         this.outputGoogle = googleWriter ? googleWriter : this._buildWriter(googleParser);
         this.value = initialValue;
         this.wasUpdated = false;
+        this.wasChanged = false;
     }
 
     /**
@@ -63,8 +64,10 @@ class TaskField {
      * @param data The raw google task payload
      */
     loadFromGoogle(data) {
-        this.value = this.parseGoogle(data, this.value);
+        const newValue = this.parseGoogle(data, this.value);
         this.wasUpdated = true;
+        this.wasChanged = newValue !== this.value;
+        this.value = newValue;
     }
 
     /**
@@ -131,8 +134,10 @@ class BasicTaskField extends TaskField {
      * @param data The card payload
      */
     loadFromTrello(data) {
-        this.value = this.parseTrello(data);
+        const newValue = this.parseTrello(data);
         this.wasUpdated = true;
+        this.wasChanged = newValue !== this.value;
+        this.value = newValue;
     }
 }
 
@@ -218,8 +223,10 @@ class CustomTaskField extends TaskField {
      * @param field The full payload for the custom field.
      */
     loadFromTrello(field) {
-        this.value = this.parseTrello(field.value, this.value);
+        const newValue = this.parseTrello(field.value, this.value);
         this.wasUpdated = true;
+        this.wasChanged = newValue !== this.value;
+        this.value = newValue;
     }
 
     writeToTrello() {

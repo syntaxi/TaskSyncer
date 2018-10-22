@@ -11,7 +11,7 @@ class ApiRequester {
         this.trelloKey = trelloKey;
         this.trelloToken = trelloToken;
         this.trelloRequests = [];
-        this.trelloLimit = 95;
+        this.trelloLimit = 80;
         this.trelloCount = 0;
         this.googleRequests = [];
         this.googleLimit = 95;
@@ -29,6 +29,7 @@ class ApiRequester {
 
     start() {
         this.trelloInterval = setInterval(() => {
+            console.log("\tResetting trello count");
             this.trelloCount = 0;
             this.processTrello()
         }, 10000);
@@ -182,9 +183,10 @@ class ApiRequester {
     }
 
     getTaskPage(pageNum) {
+        pageNum = pageNum.split("?")[1];
         const promise = new Promise(resolve =>
             this.googleRequests.unshift(
-                [this.buildGoogleGet('tasks', 'page=' + pageNum), resolve]
+                [this.buildGoogleGet('tasks', pageNum), resolve]
             )
         );
         this.processGoogle();

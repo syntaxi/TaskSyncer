@@ -32,7 +32,7 @@ class Task {
 
         /**
          * All the fields for a task
-         * @type {{TaskField}}
+         * @type {{googleId: TaskField}}
          */
         this.fields = {
             /**
@@ -62,7 +62,7 @@ class Task {
              */
             description: new BasicTaskField('description', 'desc', ""),
             status: new TaskField('status', 1),//TODO: Add this to trello cards
-            mentors: new TaskField('mentors', []),//TODO: Add this to trello cards
+            mentors: new TaskField('mentors', ['iamajellysnake@gmail.com']),//TODO: Add this to trello cards
             externalUrl: new TaskField('external_url', ""), //TODO: Add this to trello cards
             /**
              * @type {number}
@@ -108,7 +108,7 @@ class Task {
              * @name Task#isCode
              */
             isCode: new CustomTaskField(
-                data => categories.CODING in data,
+                data => data.categories.includes(categories.CODING),
                 this.customFields.isCode,
                 'boolean',
                 false,
@@ -122,7 +122,7 @@ class Task {
              * @name Task#isDesign
              */
             isDesign: new CustomTaskField(
-                data => categories.DESIGN in data,
+                data => data.categories.includes(categories.DESIGN),
                 this.customFields.isDesign,
                 'boolean',
                 false,
@@ -136,7 +136,7 @@ class Task {
              * @name Task#isDocs
              */
             isDocs: new CustomTaskField(
-                data => categories.DOCS_TRAINING in data,
+                data => data.categories.includes(categories.DOCS_TRAINING),
                 this.customFields.isDocs,
                 'boolean',
                 false,
@@ -150,7 +150,7 @@ class Task {
              * @name Task#isQa
              */
             isQa: new CustomTaskField(
-                data => categories.QA in data,
+                data => data.categories.includes(categories.QA),
                 this.customFields.isQa,
                 'boolean',
                 false,
@@ -164,7 +164,7 @@ class Task {
              * @name Task#isOutResearch
              */
             isOutResearch: new CustomTaskField(
-                data => categories.OUTRESEARCH in data,
+                data => data.categories.includes(categories.OUTRESEARCH),
                 this.customFields.isOutResearch,
                 'boolean',
                 false,
@@ -250,38 +250,58 @@ class Task {
      * @param [fieldName] {string} The names of the specific field to use (If a appropriate write type is given)
      * @return {Promise} A promise that is resolved when all the fields have been written to
      */
-    async writeToTrello(writeType, fieldName) {
+    writeToTrello(writeType, fieldName) {
         const promises = [];
         if (this.trelloId) {
             let fields;
             /* Using the write type, work out what fields to write */
             switch (writeType) {
-                case writeTypes.ONLY_UNCHANGED:
+                /* Only write fields that weren't written to */
+                case writeTypes.ONLY_UNUPDATED:
                     fields = Object.values(this.fields)
                         .filter(field => field instanceof CustomTaskField)
                         .filter(field => !field.wasUpdated);
                     break;
+                /* Only change fields that were written to */
                 case writeTypes.ONLY_UPDATED:
                     fields = Object.values(this.fields)
                         .filter(field => field instanceof CustomTaskField)
                         .filter(field => field.wasUpdated);
                     break;
+
+                /* Only change fields who's value hasn't altered */
+                case writeTypes.ONLY_UNCHANGED:
+                    fields = Object.values(this.fields)
+                        .filter(field => field instanceof CustomTaskField)
+                        .filter(field => !field.wasChanged);
+                    break;
+                /* Only change fields who's value has altered */
+                case writeTypes.ONLY_CHANGED:
+                    fields = Object.values(this.fields)
+                        .filter(field => field instanceof CustomTaskField)
+                        .filter(field => field.wasChanged);
+                    break;
+
+                /* Write all fields */
                 case writeTypes.ALL:
                     fields = Object.values(this.fields)
                         .filter(field => field instanceof CustomTaskField);
                     break;
+                /* Write one specific field type */
                 case writeTypes.SPECIFIC:
                     fields = [this.fields[fieldName]];
                     break;
                 default:
                     throw TypeError("Unknown write type for trello: " + writeType);
             }
-            console.log(`Writing "${this.name}" (${this.trelloId}) to trello: ${fields.length} fields`);
+            if (fields.length > 0) {
+                console.log(`Writing "${this.name}" (${this.trelloId}) to trello: ${fields.length} fields`);
 
-            /* Write the fields selected */
-            fields.forEach(
-                field => promises.push(
-                    requester.setCustomField(this.trelloId, field.fieldId, field.writeToTrello())));
+                /* Write the fields selected */
+                fields.forEach(
+                    field => promises.push(
+                        requester.setCustomField(this.trelloId, field.fieldId, field.writeToTrello())));
+            }
         } else {
             console.error("Cannot write. Have no trello id")
         }
@@ -293,26 +313,52 @@ class Task {
      *
      * _This will overwrite the current task information_
      */
-    writeToGoogle() {
+    writeToGoogle(writeType) {
+        let shouldWrite = true;
         let data = {};
-        for (let field in this.fields) {
-            this.fields[field].writeToGoogle(data)
+        switch (writeType) {
+            /* Write no matter what */
+            case writeType.SPECIFIC:
+            case writeTypes.ALL:
+                shouldWrite = true;
+                break;
+
+            /* Write, if any fields were updated */
+            case writeTypes.ONLY_UPDATED:
+                shouldWrite = Object.values(this.fields).find(value => value.wasUpdated);
+                break;
+
+            /* Write, if no fields were updated */
+            case writeTypes.ONLY_UNUPDATED:
+                shouldWrite = !Object.values(this.fields).find(value => value.wasUpdated);
+                break;
+
+            case writeTypes./* Oh Noes */
+                default:
+                throw TypeError("Unknown writetype: " + writeType)
+        }
+        if (shouldWrite) {
+            for (let field in this.fields) {
+                this.fields[field].writeToGoogle(data);
+            }
+
+            if (!this.googleId) {
+                console.warn(`Making new google task for ${this.name} (${this.trelloId})`);
+                return new Promise(resolve => {
+                    requester.createGoogleTask(data).then(body => {
+                        /* Store the google ID */
+                        this.fields.googleId.loadFromGoogle(body);
+                        /* Write the google task id to trello*/
+                        this.writeToTrello(writeTypes.SPECIFIC, 'googleId')
+                            .then(resolve);
+                    });
+                });
+            } else {
+                console.log(`Writing ${this.name} to Google.`);
+                return requester.updateGoogle(this.googleId, data);
+            }
         }
 
-        if (!this.googleId) {
-            console.warn(`Making new google task for ${this.name} (${this.trelloId})`);
-            return new Promise(resolve => {
-                requester.createGoogleTask(data).then(body => {
-                    /* Store the google ID */
-                    this.fields.googleId.loadFromGoogle(body);
-                    /* Write the google task id to trello*/
-                    this.writeToTrello(writeTypes.SPECIFIC, 'googleId')
-                        .then(resolve);
-                });
-            });
-        } else {
-            return requester.updateGoogle(this.googleId, data);
-        }
     }
 
     /**
@@ -321,6 +367,7 @@ class Task {
     resetStatus() {
         for (let field in this.fields) {
             this.fields[field].wasUpdated = false;
+            this.fields[field].wasChanged = false;
         }
     }
 
