@@ -3,6 +3,10 @@ const taskList = require('./TaskList');
 const {writeTypes} = require('./Globals');
 const requester = require('./ApiRequester');
 
+const request = require('request-promise');
+const express = require('express');
+const bodyParser = require('body-parser');
+
 function syncToGoogle() {
     /* First we load from Google */
     taskList.loadFromGoogle()
@@ -45,5 +49,45 @@ function syncToTrello() {
         });
 }
 
-syncToTrello();
-"halt"; // Provides a breakpoint after statements finished
+function listenToChanges() {
+    /* Load from google */
+    taskList.loadFromGoogle().then(() => {
+        /* Overwrite with trello */
+        taskList.loadFromTrello().then(() => {
+            /* Listen to trello changes */
+            _createExpressApp();
+        });
+    });
+
+}
+
+function _createExpressApp() {
+    /* Create the app to listen with */
+    const app = express();
+    app.use(bodyParser.json());
+
+    /* Listen and respond to webhooks */
+    app.post('/trelloWebhook/', (req, res) => {
+        const body = req.body;
+        console.log(body);
+        res.set('Content-Type', 'text/plain');
+        res.send(`You sent: ${body} to Express`);
+    });
+
+    /* Listen and respond to get requests so we can create webhooks */
+    app.get("/trelloWebhook/", (req, res) => {
+        console.log("Get request received");
+        res.set('Content-Type', 'text/plain');
+        res.send("Get received.");
+    });
+
+    /* Start the app */
+    app.listen(3000, function (err) {
+        if (err) {
+            throw err
+        }
+        console.log('Server started on port 3000')
+    });
+}
+
+listenToChanges();

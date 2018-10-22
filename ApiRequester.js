@@ -1,5 +1,4 @@
 const tokens = require('./tokens.json');
-const request = require('request-promise');
 
 /**
  * Interacts with the api.
@@ -76,7 +75,7 @@ class ApiRequester {
     getCustomFields(card) {
         const promise = new Promise(resolve =>
             this.trelloRequests.unshift([
-                this.buildTrelloGet(`cards/${card}`, "&customFieldItems=true"),
+                this.buildTrelloGet(`cards/${card}`, {customFieldItems: true}),
                 resolve
             ])
         );
@@ -118,28 +117,94 @@ class ApiRequester {
     }
 
     /**
+     * Writes data to the main trello card
+     * @param card The id of the card to write to
+     * @param data A key-value object of the data to write
+     * @return {Promise<any>}
+     */
+    writeMainTrello(card, data) {
+        const promise = new Promise(resolve =>
+            this.trelloRequests.unshift([
+                this.buildTrelloPut(`cards/${card}`, data),
+                resolve
+            ])
+        );
+        this.processTrello();
+        return promise
+    }
+
+    createTrelloWebhook(card) {
+        const promise = new Promise(resolve =>
+            this.trelloRequests.unshift([
+                this.buildTrelloPost("webhooks/", {
+                    idModel: card,
+                    description: `Update webhook for ${card}`,
+                    callbackURL: "http://518344c2.ngrok.io/testing/"
+                }),
+                resolve
+            ])
+        );
+        this.processTrello();
+        return promise
+    }
+
+    /**
      * Builds the options for a get request to trello
      * @param path
-     * @param queryArg
+     * @param querys
      * @return {{method: string, uri: string, json: boolean}}
      */
-    buildTrelloGet(path, queryArg) {
+    buildTrelloGet(path, querys) {
         return {
-            method: `GET`,
-            uri: `https://api.trello.com/1/${path}`
-            + `?key=${this.trelloKey}&token=${this.trelloToken}${queryArg || ""}`,
+            method: "GET",
+            uri: `https://api.trello.com/1/${path}`,
+            qs: {
+                key: this.trelloKey,
+                token: this.trelloToken,
+                ...querys //Adds all the entries in queries to the data
+            },
             json: true
         };
     }
 
-    buildTrelloPut(path, data) {
+    /**
+     *
+     * @param path
+     * @param data
+     * @param querys
+     * @return {{method: string, uri: string, qs: {key: string, token: string}, body: string, json: boolean}}
+     */
+    buildTrelloPut(path, data, querys) {
         return {
             method: 'PUT',
-            uri: `https://api.trello.com/1/${path}`
-            + `?key=${this.trelloKey}&token=${this.trelloToken}`,
+            uri: `https://api.trello.com/1/${path}`,
+            qs: {
+                key: this.trelloKey,
+                token: this.trelloToken,
+                ...querys //Adds all the entries in queries to the data
+            },
             body: data,
             json: true
-        }
+        };
+    }
+
+    /**
+     *
+     * @param path
+     * @param querys
+     * @return {{method: string, uri: string, qs: {key: string, token: string}, body: string, json: boolean}}
+     */
+    buildTrelloPost(path, querys) {
+        return {
+            method: 'POST',
+            uri: `https://api.trello.com/1/${path}`,
+            qs: {
+                key: this.trelloKey,
+                token: this.trelloToken,
+                ...querys //Adds all the entries in queries to the data
+            },
+            json: true
+        };
     }
 
     /**
@@ -247,3 +312,5 @@ class ApiRequester {
 module.exports = new ApiRequester(tokens.googleToken,
     tokens.trelloKey,
     tokens.trelloToken);
+
+

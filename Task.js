@@ -252,52 +252,25 @@ class Task {
     writeToTrello(writeType, fieldName) {
         const promises = [];
         if (this.trelloId) {
-            let fields;
             /* Using the write type, work out what fields to write */
-            switch (writeType) {
-                /* Only write fields that weren't written to */
-                case writeTypes.ONLY_UNUPDATED:
-                    fields = Object.values(this.fields)
-                        .filter(field => field instanceof CustomTaskField)
-                        .filter(field => !field.wasUpdated);
-                    break;
-                /* Only change fields that were written to */
-                case writeTypes.ONLY_UPDATED:
-                    fields = Object.values(this.fields)
-                        .filter(field => field instanceof CustomTaskField)
-                        .filter(field => field.wasUpdated);
-                    break;
+            let customFields = this._filterTrelloFields(CustomTaskField, writeType, fieldName);
+            let mainFields = this._filterTrelloFields(BasicTaskField, writeType, fieldName);
 
-                /* Only change fields who's value hasn't altered */
-                case writeTypes.ONLY_UNCHANGED:
-                    fields = Object.values(this.fields)
-                        .filter(field => field instanceof CustomTaskField)
-                        .filter(field => !field.wasChanged);
-                    break;
-                /* Only change fields who's value has altered */
-                case writeTypes.ONLY_CHANGED:
-                    fields = Object.values(this.fields)
-                        .filter(field => field instanceof CustomTaskField)
-                        .filter(field => field.wasChanged);
-                    break;
+            if (customFields.length > 0 || mainFields.length > 0) {
+                console.log(`Writing "${this.name}" (${this.trelloId}) to trello: ${customFields.length} fields`);
 
-                /* Write all fields */
-                case writeTypes.ALL:
-                    fields = Object.values(this.fields)
-                        .filter(field => field instanceof CustomTaskField);
-                    break;
-                /* Write one specific field type */
-                case writeTypes.SPECIFIC:
-                    fields = [this.fields[fieldName]];
-                    break;
-                default:
-                    throw TypeError("Unknown write type for trello: " + writeType);
-            }
-            if (fields.length > 0) {
-                console.log(`Writing "${this.name}" (${this.trelloId}) to trello: ${fields.length} fields`);
+
+                /* Write the main data */
+                if (mainFields.length > 0) {
+                    const data = {};
+                    mainFields.forEach(
+                        field => field.writeToTrello(data)
+                    );
+                    promises.push(requester.writeMainTrello(this.trelloId, data));
+                }
 
                 /* Write the fields selected */
-                fields.forEach(
+                customFields.forEach(
                     field => promises.push(
                         requester.setCustomField(this.trelloId, field.fieldId, field.writeToTrello())));
             }
@@ -305,6 +278,53 @@ class Task {
             console.error("Cannot write. Have no trello id")
         }
         return Promise.all(promises);
+    }
+
+    /**
+     * Filters the fields that should be written to trello.
+     *
+     * @param instanceType The type of field to filter
+     * @param writeType The filtering method to use
+     * @param fieldName The name of the specific field to write, if relevant
+     * @return {[CustomTaskField]} True if they should be written, false otherwise
+     * @private
+     */
+    _filterTrelloFields(instanceType, writeType, fieldName) {
+        switch (writeType) {
+            /* Only write fields that weren't written to */
+            case writeTypes.ONLY_UNUPDATED:
+                return Object.values(this.fields)
+                    .filter(field => field instanceof instanceType)
+                    .filter(field => !field.wasUpdated);
+            /* Only change fields that were written to */
+            case writeTypes.ONLY_UPDATED:
+                return Object.values(this.fields)
+                    .filter(field => field instanceof instanceType)
+                    .filter(field => field.wasUpdated);
+
+            /* Only change fields who's value hasn't altered */
+            case writeTypes.ONLY_UNCHANGED:
+                return Object.values(this.fields)
+                    .filter(field => field instanceof instanceType)
+                    .filter(field => !field.wasChanged);
+            /* Only change fields who's value has altered */
+            case writeTypes.ONLY_CHANGED:
+                return Object.values(this.fields)
+                    .filter(field => field instanceof instanceType)
+                    .filter(field => field.wasChanged);
+
+            /* Write all fields */
+            case writeTypes.ALL:
+                return Object.values(this.fields)
+                    .filter(field => field instanceof instanceType);
+            /* Write one specific field type */
+            case writeTypes.SPECIFIC:
+                return this.fields[fieldName] instanceof instanceType
+                    ? [this.fields[fieldName]]
+                    : [];
+            default:
+                throw TypeError("Unknown write type for trello: " + writeType);
+        }
     }
 
     /**

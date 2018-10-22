@@ -118,15 +118,14 @@ class BasicTaskField extends TaskField {
     /**
      * Loads in the trello field stuff and delegates the google fields to the super constructor
      * @param googleHandler {string|function} The google handler
-     * @param trelloHandler {string|function} If a string, then should be the key of the data in the payload.
-     *                      Else should be a function that takes in the payload and optionally the current field value
-     *                      and returns the new field value
+     * @param trelloHandler {string} The key of the data in the payload.
      * @param [initialValue] {*} The initial value to set the field to. Defaults to null
      * @param [googleWriter] {function}
      */
     constructor(googleHandler, trelloHandler, initialValue, googleWriter) {
         super(googleHandler, initialValue, googleWriter);
-        this.parseTrello = this._buildParser(trelloHandler);
+        this.parseTrello = data => data[trelloHandler];
+        this.trelloWriter = data => data[trelloHandler] = this.value;
     }
 
     /**
@@ -138,6 +137,14 @@ class BasicTaskField extends TaskField {
         this.wasUpdated = true;
         this.wasChanged = newValue !== this.value;
         this.value = newValue;
+    }
+
+    /**
+     * Converts this field into a form to be sent to trello
+     * @param data The object to store this field in
+     */
+    writeToTrello(data) {
+        this.trelloWriter(data);
     }
 }
 
