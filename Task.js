@@ -370,8 +370,14 @@ class Task {
                 shouldWrite = !Object.values(this.fields).find(value => value.wasUpdated);
                 break;
 
-            case writeTypes./* Oh Noes */
-                default:
+            case writeTypes.ONLY_CHANGED:
+                shouldWrite = Object.values(this.fields).find(value => value.wasChanged);
+                break;
+
+            case writeTypes.ONLY_UNCHANGED:/* Oh Noes */
+                shouldWrite = !Object.values(this.fields).find(value => value.wasChanged);
+                break;
+            default:
                 throw TypeError("Unknown writetype: " + writeType)
         }
         if (shouldWrite) {

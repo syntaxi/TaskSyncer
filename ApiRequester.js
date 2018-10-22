@@ -30,11 +30,16 @@ class ApiRequester {
 
     start() {
         this.trelloInterval = setInterval(() => {
-            console.log("\tResetting trello count");
+            if (this.trelloCount !== 0) {
+                console.log("\tResetting trello count");
+            }
             this.trelloCount = 0;
             this.processTrello()
         }, 10000);
         this.googleInterval = setInterval(() => {
+            if (this.googleCount !== 0) {
+                console.log("\tResetting google count");
+            }
             this.googleCount = 0;
             this.processGoogle()
         }, 10000);
@@ -49,7 +54,7 @@ class ApiRequester {
             let [payload, resolve] = this.trelloRequests.pop();
             request(payload).then(resolve);
             this.trelloCount += 1;
-            console.log("Trello Calls: " + this.trelloCount);
+            //console.log("Trello Calls: " + this.trelloCount);
         }
     }
 
@@ -150,13 +155,25 @@ class ApiRequester {
         return promise
     }
 
+    getTrelloWebhooks() {
+        const promise = new Promise(resolve =>
+            this.trelloRequests.unshift([
+                this.buildTrelloGet(`tokens/${this.trelloToken}/webhooks`),
+                resolve
+            ])
+        );
+        this.processTrello();
+        return promise
+    }
+
     /**
      * Builds the options for a get request to trello
      * @param path
-     * @param querys
+     * @param [querys]
      * @return {{method: string, uri: string, json: boolean}}
      */
     buildTrelloGet(path, querys) {
+        querys = querys || {};
         return {
             method: "GET",
             uri: `https://api.trello.com/1/${path}`,
@@ -173,10 +190,11 @@ class ApiRequester {
      *
      * @param path
      * @param data
-     * @param querys
+     * @param [querys]
      * @return {{method: string, uri: string, qs: {key: string, token: string}, body: string, json: boolean}}
      */
     buildTrelloPut(path, data, querys) {
+        querys = querys || {};
         return {
             method: 'PUT',
             uri: `https://api.trello.com/1/${path}`,
@@ -193,10 +211,11 @@ class ApiRequester {
     /**
      *
      * @param path
-     * @param querys
+     * @param [querys]
      * @return {{method: string, uri: string, qs: {key: string, token: string}, body: string, json: boolean}}
      */
     buildTrelloPost(path, querys) {
+        querys = querys || {};
         return {
             method: 'POST',
             uri: `https://api.trello.com/1/${path}`,
@@ -218,7 +237,7 @@ class ApiRequester {
             let [payload, resolve] = this.googleRequests.pop();
             request(payload).then(resolve);
             this.googleCount += 1;
-            console.log("Google Calls: " + this.googleCount);
+            //console.log("Google Calls: " + this.googleCount);
         }
     }
 

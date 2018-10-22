@@ -180,7 +180,7 @@ class TaskList {
     }
 
     handleWebhookActivate(data) {
-        const card = this.getTaskFromTrello(data.action.id);
+        const card = this.getTaskFromTrello(data.action.data.card.id);
         card.resetStatus();
         switch (data.action.type) {
             case 'updateCard':
@@ -197,8 +197,27 @@ class TaskList {
         card.writeToGoogle(writeTypes.ONLY_CHANGED);
     }
 
+    /**
+     * Validates all the current webhooks, removing those without a card and adding new ones for new cards
+     */
     createWebhooks() {
-        
+        requester.getTrelloWebhooks()
+            .then(webhooks => {
+                const cardIds = [];
+                this.tasks.forEach(card => cardIds.push(card.trelloId));
+
+                webhooks.forEach(webhook => {
+                    /* If we can find this webhook in the cards, remove it */
+                    const index = cardIds.indexOf(webhook.idModel);
+                    if (index >= 0) {
+                        cardIds.splice(index, 1);
+                    }
+                });
+                cardIds.forEach(id => {
+                    console.warn("Creating webhook for " + id);
+                    requester.createTrelloWebhook(id);
+                });
+            });
     }
 
     /**
