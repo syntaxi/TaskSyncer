@@ -3,7 +3,6 @@ const taskList = require('./TaskList');
 const {writeTypes} = require('./Globals');
 const requester = require('./ApiRequester');
 
-const request = require('request-promise');
 const express = require('express');
 const bodyParser = require('body-parser');
 
@@ -68,10 +67,10 @@ function _createExpressApp() {
 
     /* Listen and respond to webhooks */
     app.post('/trelloWebhook/', (req, res) => {
-        const body = req.body;
-        console.log(body);
         res.set('Content-Type', 'text/plain');
-        res.send(`You sent: ${body} to Express`);
+        res.send("Webhook received");
+
+        taskList.handleWebhookActivate(req.body);
     });
 
     /* Listen and respond to get requests so we can create webhooks */
@@ -88,6 +87,12 @@ function _createExpressApp() {
         }
         console.log('Server started on port 3000')
     });
+
+    taskList.createWebhooks();
+
+    //testing
+    //requester.createTrelloWebhook("5bcdd944e1746b884c6f2db5").then(() => console.log("Created webhook for test card"));
+
 }
 
 listenToChanges();

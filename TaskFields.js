@@ -188,7 +188,7 @@ class CustomTaskField extends TaskField {
                 case 'number':
                     return field => parseInt(field.number);
                 case 'boolean':
-                    return field => field.checked === 'true';
+                    return field => !!field && field.checked === 'true'; //Instead of false, no value is passed in
                 case 'string':
                     return field => field.text;
                 default:

@@ -1,4 +1,6 @@
 const tokens = require('./tokens.json');
+const request = require('request-promise');
+const Promise = require('bluebird');
 
 /**
  * Interacts with the api.
@@ -139,7 +141,7 @@ class ApiRequester {
                 this.buildTrelloPost("webhooks/", {
                     idModel: card,
                     description: `Update webhook for ${card}`,
-                    callbackURL: "http://518344c2.ngrok.io/testing/"
+                    callbackURL: "http://518344c2.ngrok.io/trelloWebhook/"
                 }),
                 resolve
             ])

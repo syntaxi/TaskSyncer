@@ -209,20 +209,38 @@ class Task {
      */
     loadFromTrello(data) {
         /* Load all the basic fields */
-        Object.values(this.fields)
-            .filter(value => value instanceof BasicTaskField)
-            .forEach(field => field.loadFromTrello(data));
+        this.loadBasicTrello(data);
 
         //TODO: Get the custom field data at the same time as the card data
         return requester.getCustomFields(this.trelloId).then(body => {
-            /* Copy across so we know what fields are NOT set */
-            body.customFieldItems.forEach(this.handleField, this);
-
-            /* Update false entries for the checkboxes */
-            Object.values(this.fields)
-                .filter(field => field instanceof CustomTaskField)
-                .forEach(field => field.handleNotPresent());
+            this.loadCustomTrello(body.customFieldItems);
         });
+    }
+
+    /**
+     * Handles and loads this card from the given basic card data
+     *
+     * @param data The basic card data to load
+     */
+    loadBasicTrello(data) {
+        Object.values(this.fields)
+            .filter(value => value instanceof BasicTaskField)
+            .forEach(field => field.loadFromTrello(data));
+    }
+
+    /**
+     * Handles and loads this card from the given custom field data.
+     *
+     * @param data {[json]} A list of the custom fields to update
+     */
+    loadCustomTrello(data) {
+        /* Load in the main data from each field */
+        data.forEach(this.handleField, this);
+
+        /* Update false entries for the checkboxes */
+        Object.values(this.fields)
+            .filter(field => field instanceof CustomTaskField)
+            .forEach(field => field.handleNotPresent());
     }
 
     /**

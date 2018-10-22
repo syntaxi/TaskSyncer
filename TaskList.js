@@ -1,4 +1,4 @@
-const {categories} = require('./Globals');
+const {categories, writeTypes} = require('./Globals');
 const requester = require('./ApiRequester');
 const Task = require('./Task');
 const Promise = require('bluebird');
@@ -177,6 +177,28 @@ class TaskList {
             promises.push(task.writeToTrello(writeType))
         );
         return Promise.all(promises);
+    }
+
+    handleWebhookActivate(data) {
+        const card = this.getTaskFromTrello(data.action.id);
+        card.resetStatus();
+        switch (data.action.type) {
+            case 'updateCard':
+                console.log("Webhook triggered: card updated");
+                card.loadBasicTrello(data.action.data.card);
+                break;
+            case 'updateCustomFieldItem':
+                console.log("Webhook triggered: custom field changed");
+                card.loadCustomTrello([data.action.data.customFieldItem]);
+                break;
+            default:
+                console.log("Webhook triggered: Irrelevant change detected");
+        }
+        card.writeToGoogle(writeTypes.ONLY_CHANGED);
+    }
+
+    createWebhooks() {
+        
     }
 
     /**
