@@ -78,12 +78,11 @@ class Task {
              * @name Task#days
              */
             tags: new CustomTaskField(
-                'tags',
+                data => data.tags.join(", "),
                 this.customFields.tags,
-                field => field.text.split(/\s*,\s*/i),
-                [],
-                null,
-                value => value.join(", ")),
+                'string',
+                "",
+                data => data.tags = this.tags.split(/\s*,\s*/i),),
             /**
              * @type {boolean}
              * @name Task#isBeginner

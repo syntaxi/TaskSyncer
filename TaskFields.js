@@ -165,7 +165,7 @@ class CustomTaskField extends TaskField {
         this.fieldId = fieldId;
         this.type = typeof trelloHandler;
         this.parseTrello = this._buildTrelloParser(trelloHandler);
-        this.trelloWriter = trelloWriter || this._buildTrelloWriter()
+        this.trelloWriter = trelloWriter || (value => value)
     }
 
     /**
@@ -182,6 +182,8 @@ class CustomTaskField extends TaskField {
                     return field => parseInt(field.number);
                 case 'boolean':
                     return field => field.checked === 'true';
+                case 'string':
+                    return field => field.text;
                 default:
                     throw new TypeError(`Type of trelloHandler (${trelloHandler}) was not known `)
             }
@@ -190,10 +192,6 @@ class CustomTaskField extends TaskField {
         } else {
             throw new TypeError(`Field trelloHandler (${trelloHandler}) is not a String or Function`);
         }
-    }
-
-    _buildTrelloWriter() {
-        return value => value
     }
 
     /**
