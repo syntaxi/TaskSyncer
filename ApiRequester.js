@@ -146,7 +146,7 @@ class ApiRequester {
                 this.buildTrelloPost("webhooks/", {
                     idModel: card,
                     description: `Update webhook for ${card}`,
-                    callbackURL: "http://518344c2.ngrok.io/trelloWebhook/"
+                    callbackURL: "http://c4cf34bd.ngrok.io/trelloWebhook/"
                 }),
                 resolve
             ])
@@ -159,6 +159,17 @@ class ApiRequester {
         const promise = new Promise(resolve =>
             this.trelloRequests.unshift([
                 this.buildTrelloGet(`tokens/${this.trelloToken}/webhooks`),
+                resolve
+            ])
+        );
+        this.processTrello();
+        return promise
+    }
+
+    deleteTrelloWebhook(webhookId) {
+        const promise = new Promise(resolve =>
+            this.trelloRequests.unshift([
+                this.buildTrelloDelete(`tokens/${this.trelloToken}/webhooks/${webhookId}`),
                 resolve
             ])
         );
@@ -218,6 +229,26 @@ class ApiRequester {
         querys = querys || {};
         return {
             method: 'POST',
+            uri: `https://api.trello.com/1/${path}`,
+            qs: {
+                key: this.trelloKey,
+                token: this.trelloToken,
+                ...querys //Adds all the entries in queries to the data
+            },
+            json: true
+        };
+    }
+
+    /**
+     *
+     * @param path
+     * @param [querys]
+     * @return {{method: string, uri: string, qs: {key: string, token: string}, body: string, json: boolean}}
+     */
+    buildTrelloDelete(path, querys) {
+        querys = querys || {};
+        return {
+            method: 'DELETE',
             uri: `https://api.trello.com/1/${path}`,
             qs: {
                 key: this.trelloKey,

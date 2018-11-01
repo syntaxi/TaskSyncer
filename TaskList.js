@@ -203,19 +203,12 @@ class TaskList {
     createWebhooks() {
         requester.getTrelloWebhooks()
             .then(webhooks => {
-                const cardIds = [];
-                this.tasks.forEach(card => cardIds.push(card.trelloId));
-
                 webhooks.forEach(webhook => {
-                    /* If we can find this webhook in the cards, remove it */
-                    const index = cardIds.indexOf(webhook.idModel);
-                    if (index >= 0) {
-                        cardIds.splice(index, 1);
-                    }
+                    requester.deleteTrelloWebhook(webhook.id);
                 });
-                cardIds.forEach(id => {
-                    console.warn("Creating webhook for " + id);
-                    requester.createTrelloWebhook(id);
+                this.tasks.forEach(card => {
+                    console.warn(`Creating webhook for "${card.name}" (${card.trelloId})`);
+                    requester.createTrelloWebhook(card.trelloId);
                 });
             });
     }

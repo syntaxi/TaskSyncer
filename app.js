@@ -53,8 +53,11 @@ function listenToChanges() {
     taskList.loadFromGoogle().then(() => {
         /* Overwrite with trello */
         taskList.loadFromTrello().then(() => {
-            /* Listen to trello changes */
-            _createExpressApp();
+            /* Write this to google */
+            taskList.writeToGoogle().then(() => {
+                /* Listen to trello changes */
+                _createExpressApp();
+            });
         });
     });
 
@@ -87,7 +90,6 @@ function _createExpressApp() {
         }
         console.log('Server started on port 3000')
     });
-
     taskList.createWebhooks();
 
     //testing
