@@ -1,4 +1,5 @@
 const {categories, writeTypes} = require('./Globals');
+const {customFields} = require("./trelloIds.json");
 /**
  * The main requester to use for api calls
  * @type {ApiRequester}
@@ -15,20 +16,7 @@ const {TaskField, BasicTaskField, CustomTaskField} = require("./TaskFields");
 class Task {
     constructor() {
         /* Trello custom field id's */
-        this.customFields = {
-            isBeginner: "5bb13d35adbb5244eb5b749d",
-            days: "5bb13de3b6a0c658dce16fd5",
-            tags: "5bb13e3b05e0cc6f01a9b76f",
-            instances: "5bb13e67765a792d213d290b",
-            googleId: "5bc2c3822a3cad2dc77409f5",
-
-            isCode: "5bb13d86d728442f22e898e0",
-            isDesign: "5bb13d8fc802625a6c30ee61",
-            isDocs: "5bb13da34edf5926c83f294a",
-            isQa: "5bb13da9f285397f1a80dddc",
-            isOutResearch: "5bb13dbc351a9c4e5c93cd1f"
-        };
-
+        this.customFields = customFields;
 
         /**
          * All the fields for a task
@@ -38,7 +26,6 @@ class Task {
             /**
              * @type {number}
              * @name Task#googleId
-             * @name Task#fields#googleId
              */
             googleId: new CustomTaskField('id', this.customFields.googleId, 'number', 0),
             /**
@@ -112,7 +99,7 @@ class Task {
                 'boolean',
                 false,
                 data => {
-                    data.categories = data.categories || [];
+                    data.categories = data.categories || {};
                     if (this.isCode)
                         data.categories.push(categories.CODING);
                 }),
@@ -126,7 +113,7 @@ class Task {
                 'boolean',
                 false,
                 data => {
-                    data.categories = data.categories || [];
+                    data.categories = data.categories || {};
                     if (this.isDesign)
                         data.categories.push(categories.DESIGN);
                 }),
@@ -140,7 +127,7 @@ class Task {
                 'boolean',
                 false,
                 data => {
-                    data.categories = data.categories || [];
+                    data.categories = data.categories || {};
                     if (this.isDocs)
                         data.categories.push(categories.DOCS_TRAINING);
                 }),
@@ -154,7 +141,7 @@ class Task {
                 'boolean',
                 false,
                 data => {
-                    data.categories = data.categories || [];
+                    data.categories = data.categories || {};
                     if (this.isQa)
                         data.categories.push(categories.QA);
                 }),
@@ -168,7 +155,7 @@ class Task {
                 'boolean',
                 false,
                 data => {
-                    data.categories = data.categories || [];
+                    data.categories = data.categories || {};
                     if (this.isOutResearch)
                         data.categories.push(categories.OUTRESEARCH);
                 }),

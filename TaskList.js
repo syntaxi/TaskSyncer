@@ -2,6 +2,7 @@ const {categories, writeTypes} = require('./Globals');
 const requester = require('./ApiRequester');
 const Task = require('./Task');
 const Promise = require('bluebird');
+const {categoryLists, boardId} = require("./trelloIds.json");
 
 /**
  * Overall store for all the tasks
@@ -15,14 +16,8 @@ class TaskList {
          * @type {Task[]}
          */
         this.tasks = [];
-        this.boardId = "5b9b100cca1728134ee88b15";
-        this.categoryLists = {
-            1: '5bb10eaaa163492c93420393',
-            2: '5bb13fe396623c2292321640',
-            3: '5bb13feff9698564f44ccc4b',
-            4: '5bb13ffda245836ef12b392c',
-            5: '5bb1400605e0cc6f01a9e124',
-        };
+        this.boardId = boardId;
+        this.categoryLists = categoryLists;
     }
 
     /**

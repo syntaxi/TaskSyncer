@@ -1,0 +1,22 @@
+{
+  "boardId": <ID goes here>,
+  "categoryLists": {
+    "design": <ID goes here>,
+    "coding": <ID goes here>,
+    "docs": <ID goes here>,
+    "qa": <ID goes here>,
+    "outreach": <ID goes here>
+  },
+  "customFields": {
+    "isBeginner": <ID goes here>,
+    "days": <ID goes here>,
+    "tags": <ID goes here>,
+    "instances": <ID goes here>,
+    "googleId": <ID goes here>,
+    "isCode": <ID goes here>,
+    "isDesign": <ID goes here>,
+    "isDocs": <ID goes here>,
+    "isQa": <ID goes here>,
+    "isOutResearch": <ID goes here>
+  }
+}
