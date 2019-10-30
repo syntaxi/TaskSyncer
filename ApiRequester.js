@@ -52,7 +52,9 @@ class ApiRequester {
     processTrello() {
         while (this.trelloCount <= this.trelloLimit && this.trelloRequests.length > 0) {
             let [payload, resolve] = this.trelloRequests.pop();
-            request(payload).then(resolve);
+            request(payload)
+                .then(resolve)
+                .catch(reason => console.log(`Call to trello api (${payload.uri}) failed: ${reason}`));
             this.trelloCount += 1;
             //console.log("Trello Calls: " + this.trelloCount);
         }
@@ -266,7 +268,9 @@ class ApiRequester {
     processGoogle() {
         while (this.googleCount <= this.googleLimit && this.googleRequests.length > 0) {
             let [payload, resolve] = this.googleRequests.pop();
-            request(payload).then(resolve);
+            request(payload)
+                .then(resolve)
+                .catch(reason => console.log("Call to google api (${payload.uri}) failed: " + reason));
             this.googleCount += 1;
             //console.log("Google Calls: " + this.googleCount);
         }
