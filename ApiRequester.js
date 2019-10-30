@@ -1,6 +1,7 @@
 const tokens = require('./tokens.json');
 const request = require('request-promise');
 const Promise = require('bluebird');
+const {callbackUrl} = require("./config.json");
 
 /**
  * Interacts with the api.
@@ -61,6 +62,7 @@ class ApiRequester {
     }
 
     /**
+     *
      * Get all cards from a Trello list
      * @param id The id of the trello list
      * @return {Promise} A promise that is resolved with the data
@@ -148,7 +150,7 @@ class ApiRequester {
                 this.buildTrelloPost("webhooks/", {
                     idModel: card,
                     description: `Update webhook for ${card}`,
-                    callbackURL: "http://c4cf34bd.ngrok.io/trelloWebhook/"
+                    callbackURL: callbackUrl
                 }),
                 resolve
             ])
@@ -270,7 +272,7 @@ class ApiRequester {
             let [payload, resolve] = this.googleRequests.pop();
             request(payload)
                 .then(resolve)
-                .catch(reason => console.log("Call to google api (${payload.uri}) failed: " + reason));
+                .catch(reason => console.log(`Call to google api (${payload.uri}) failed: ${reason}`));
             this.googleCount += 1;
             //console.log("Google Calls: " + this.googleCount);
         }

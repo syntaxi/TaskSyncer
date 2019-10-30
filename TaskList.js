@@ -2,7 +2,7 @@ const {categories, writeTypes} = require('./Globals');
 const requester = require('./ApiRequester');
 const Task = require('./Task');
 const Promise = require('bluebird');
-const {categoryLists, boardId} = require("./trelloIds.json");
+const {categoryLists, boardId} = require("./config.json");
 
 /**
  * Overall store for all the tasks

@@ -1,11 +1,11 @@
 {
   "boardId": <ID goes here>,
   "categoryLists": {
-    "design": <ID goes here>,
-    "coding": <ID goes here>,
-    "docs": <ID goes here>,
-    "qa": <ID goes here>,
-    "outreach": <ID goes here>
+    "1": <ID goes here>,
+    "2": <ID goes here>,
+    "3": <ID goes here>,
+    "4": <ID goes here>,
+    <ID goes here>
   },
   "customFields": {
     "isBeginner": <ID goes here>,
@@ -18,5 +18,6 @@
     "isDocs": <ID goes here>,
     "isQa": <ID goes here>,
     "isOutResearch": <ID goes here>
-  }
+  },
+  "callbackUrl": <ID goes here>
 }

@@ -54,7 +54,7 @@ function listenToChanges() {
         /* Overwrite with trello */
         taskList.loadFromTrello().then(() => {
             /* Write this to google */
-            taskList.writeToGoogle().then(() => {
+            taskList.writeToGoogle(writeTypes.ALL).then(() => {
                 /* Listen to trello changes */
                 _createExpressApp();
             });

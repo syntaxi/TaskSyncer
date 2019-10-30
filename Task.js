@@ -1,5 +1,5 @@
 const {categories, writeTypes} = require('./Globals');
-const {customFields} = require("./trelloIds.json");
+const {customFields} = require("./config.json");
 /**
  * The main requester to use for api calls
  * @type {ApiRequester}
@@ -99,7 +99,7 @@ class Task {
                 'boolean',
                 false,
                 data => {
-                    data.categories = data.categories || {};
+                    data.categories = data.categories || [];
                     if (this.isCode)
                         data.categories.push(categories.CODING);
                 }),
@@ -113,7 +113,7 @@ class Task {
                 'boolean',
                 false,
                 data => {
-                    data.categories = data.categories || {};
+                    data.categories = data.categories || [];
                     if (this.isDesign)
                         data.categories.push(categories.DESIGN);
                 }),
@@ -127,7 +127,7 @@ class Task {
                 'boolean',
                 false,
                 data => {
-                    data.categories = data.categories || {};
+                    data.categories = data.categories || [];
                     if (this.isDocs)
                         data.categories.push(categories.DOCS_TRAINING);
                 }),
@@ -141,7 +141,7 @@ class Task {
                 'boolean',
                 false,
                 data => {
-                    data.categories = data.categories || {};
+                    data.categories = data.categories || [];
                     if (this.isQa)
                         data.categories.push(categories.QA);
                 }),
@@ -155,7 +155,7 @@ class Task {
                 'boolean',
                 false,
                 data => {
-                    data.categories = data.categories || {};
+                    data.categories = data.categories || [];
                     if (this.isOutResearch)
                         data.categories.push(categories.OUTRESEARCH);
                 }),
