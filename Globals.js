@@ -23,7 +23,27 @@ const writeTypes = {
     SPECIFIC: 6
 };
 
+const fields = {
+    GOOGLE_ID: "googleId",
+    TRELLO_ID: "trelloId",
+    NAME: "name",
+    DESCRIPTION: "desc",
+    STATUS: "status",
+    MENTORS: "mentors",
+    EXTERNAL_URL: "extUrl",
+    MAX_INSTANCES: "maxInst",
+    TAGS: "tags",
+    IS_BEGINNER: "isBeg",
+    DAYS: "days",
+    CATEGORIES: "categories",
+    LAST_MODIFIED: "last_mod",
+    CLAIMED_COUNT: "claimed",
+    AVAILABLE_COUNT: "available",
+    COMPLETED_COUNT: "completed"
+};
+
 module.exports = {
     categories: categories,
-    writeTypes: writeTypes
+    writeTypes: writeTypes,
+    fields: fields
 };

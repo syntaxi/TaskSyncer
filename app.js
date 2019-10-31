@@ -73,12 +73,17 @@ function _createExpressApp() {
         res.set('Content-Type', 'text/plain');
         res.send("Webhook received");
 
+        /* We exclude webhooks from this bot */
+        if (req.body.action.idMemberCreator === "5bcaf9208a1b09652e06f735") {
+            return;
+        } else {
+        }
         taskList.handleWebhookActivate(req.body);
     });
 
     /* Listen and respond to get requests so we can create webhooks */
     app.get("/trelloWebhook/", (req, res) => {
-        console.log("Get request received");
+        console.log("Web server received a GET request");
         res.set('Content-Type', 'text/plain');
         res.send("Get received.");
     });
@@ -97,4 +102,24 @@ function _createExpressApp() {
 
 }
 
-listenToChanges();
+// listenToChanges();
+//
+// const googleInterface = require("./GoogleInterface.js");
+const newTaskList = require("./TaskList.js");
+const trelloInterface = require("./TrelloInterface.js");
+const googleInterface = require("./GoogleInterface.js");
+//
+// googleInterface.loadAllTasks(newTaskList).then(
+//     () => {
+//         googleInterface.writeTask(newTaskList.tasks[0]);
+//     }
+// );
+
+// Treats google as the source of truth.
+trelloInterface.loadAllTasks(newTaskList) // Load things from trello
+    .then(() => googleInterface.loadAllTasks(newTaskList)) // Overwrite them with the stuff from google
+    .then(() => googleInterface.writeAllTasks(newTaskList)) // Write this new list back to google
+    .then(() => trelloInterface.writeAllTasks(newTaskList)) // Write this new list back to trello
+    .then(result => {
+        console.log("Finished!");
+    });
