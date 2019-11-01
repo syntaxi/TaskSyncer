@@ -47,7 +47,7 @@ class TrelloInterface extends ApiInterface {
         // Firstly get the categories from the list it's in
         let listId = Object.keys(categoryLists).find(key => categoryLists[key] === rawCard.idList);
         if (listId !== undefined) {
-            taskCategories.add(listId);
+            taskCategories.add(parseInt(listId));
         }
 
         if (this.getCustomFieldFromData(customFields.isDesign, rawCard)) {
@@ -233,11 +233,11 @@ class TrelloInterface extends ApiInterface {
     serialiseCategories(task) {
         let result = {};
         let taskCategories = task.getField(fields.CATEGORIES);
-        result[customFields.isCode] = (categories.CODING in taskCategories) ? {value: {checked: "true"}} : {value: ""};
-        result[customFields.isQa] = (categories.QA in taskCategories) ? {value: {checked: "true"}} : {value: ""};
-        result[customFields.isOutResearch] = (categories.OUTRESEARCH in taskCategories) ? {value: {checked: "true"}} : {value: ""};
-        result[customFields.isDocs] = (categories.DOCS_TRAINING in taskCategories) ? {value: {checked: "true"}} : {value: ""};
-        result[customFields.isDesign] = (categories.DESIGN in taskCategories) ? {value: {checked: "true"}} : {value: ""};
+        result[customFields.isCode] = taskCategories.includes(categories.CODING) ? {value: {checked: "true"}} : {value: ""};
+        result[customFields.isQa] = taskCategories.includes(categories.QA) ? {value: {checked: "true"}} : {value: ""};
+        result[customFields.isOutResearch] = taskCategories.includes(categories.OUTRESEARCH) ? {value: {checked: "true"}} : {value: ""};
+        result[customFields.isDocs] = taskCategories.includes(categories.DOCS_TRAINING) ? {value: {checked: "true"}} : {value: ""};
+        result[customFields.isDesign] = taskCategories.includes(categories.DESIGN) ? {value: {checked: "true"}} : {value: ""};
         return result;
     }
 
