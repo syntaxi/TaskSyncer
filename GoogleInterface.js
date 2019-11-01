@@ -2,15 +2,40 @@ const requester = require("./GoogleApiRequester.js");
 const {fields} = require("./Globals");
 const ApiInterface = require("./ApiInterface.js");
 
+/**
+ * An interface between the Google Code-In site, and the internal data representation
+ *
+ * @typedef {{
+ *      categories: [number]
+ *      id:number
+ *      name:string
+ *      description:string
+ *      available_count: number
+ *      claimed_count: number
+ *      completed_count: number
+ *      external_url: string
+ *      is_beginner: boolean
+ *      last_modified: string
+ *      max_instances: number
+ *      mentors: [string]
+ *      private_metadata: string
+ *      status: number
+ *      tags: [string]
+ *      time_to_complete_in_days: number
+ *  }} RawGoogle
+ *
+ * @see ApiInterface
+ */
 class GoogleInterface extends ApiInterface {
+    /**
+     * @inheritDoc
+     */
     updateOtherId(task) {
         return requester.updateTask(task, this.taskToRaw(task));
     }
 
     /**
-     * Loads all the tasks from GCI into the list.
-     * If possible tasks will be overwritten
-     * @param taskList {TaskList} The list to write into
+     * @inheritDoc
      */
     loadAllTasks(taskList) {
         return requester.getAllTasks().then(rawTasks => {
@@ -23,23 +48,7 @@ class GoogleInterface extends ApiInterface {
     }
 
     /**
-     * Writes all the tasks contained with the list to google.
-     *
-     * If a task has a google id try and write to that task.
-     * If the task does not have a google id, or the write fails then make a new task and write to that.
-     *
-     * Update the Google Id in the task if applicable
-     * @param taskList {TaskList}
-     */
-
-
-    /**
-     *  Writes a single task to google.
-     *  If it can find a task using the {@link fields.GOOGLE_ID} field then it will update that one,
-     *  if it cannot then it will create a new task.
-     *
-     *  Updating a task will overwrite all fields with the data in the task.
-     * @param task {Task} The task to push to GCI
+     * @inheritDoc
      */
     writeTask(task) {
         task.resetUpdatedFields();
@@ -55,14 +64,19 @@ class GoogleInterface extends ApiInterface {
             });
     }
 
+    /**
+     * @inheritDoc
+     */
     loadTask(task) {
-        super.loadTask(task);  //TODO: Implement
+        return super.loadTask(task);  //TODO: Implement
     }
 
     /**
+     * Attempts to either write the given data to a pre-existing entry,
+     * If that fails, then falls back to creating a new entry and updating that instead
      *
      * @param task {Task}
-     * @return {Promise|Promise<any | never>}
+     * @return {Promise<RawGoogle>}
      */
     writeOrCreate(task) {
         let rawTask = this.taskToRaw(task);
@@ -70,7 +84,7 @@ class GoogleInterface extends ApiInterface {
             return requester.updateTask(task.getField(fields.GOOGLE_ID), rawTask)
                 .catch(
                     reason => {
-                        if (reason.statusCode === 404) {
+                        if (reason.statusCode === 404) { // 404 code indicates the ID is bogus and we need to make a new task
                             console.log(`Updating task '${task.getField(fields.NAME)}' failed. Creating new task`);
                             return requester.createTask(rawTask)
                                 .tap(response => task.setField(fields.GOOGLE_ID, response[id]));
@@ -83,69 +97,71 @@ class GoogleInterface extends ApiInterface {
     }
 
     /**
+     * Converts a task into the raw data used by the google service
      *
-     * @param task {Task}
-     * @return The data in google format
+     * @param task {Task} The task to convert
+     * @return {RawGoogle} The data in google format
      */
     taskToRaw(task) {
         let data = {};
-        data["id"] = task.getField(fields.GOOGLE_ID) || 0;
-        data["name"] = task.getField(fields.NAME) || "";
-        data["description"] = task.getField(fields.DESCRIPTION) || "";
-        data["max_instances"] = task.getField(fields.MAX_INSTANCES) || 1;
-        data["tags"] = task.getField(fields.TAGS) || [];
-        data["is_beginner"] = task.getField(fields.IS_BEGINNER) || false;
-        data["categories"] = task.getField(fields.CATEGORIES) || [];
-        data["time_to_complete_in_days"] = task.getField(fields.DAYS) || 3;
-        data["private_metadata"] = task.getField(fields.TRELLO_ID) || "";
+        data.id = task.getField(fields.GOOGLE_ID) || 0;
+        data.name = task.getField(fields.NAME) || "";
+        data.description = task.getField(fields.DESCRIPTION) || "";
+        data.max_instances = task.getField(fields.MAX_INSTANCES) || 1;
+        data.tags = task.getField(fields.TAGS) || [];
+        data.is_beginner = task.getField(fields.IS_BEGINNER) || false;
+        data.categories = task.getField(fields.CATEGORIES) || [];
+        data.time_to_complete_in_days = task.getField(fields.DAYS) || 3;
+        data.private_metadata = task.getField(fields.TRELLO_ID) || "";
 
         // Un-replicated fields
-        data["status"] = task.getField(fields.STATUS) || 1;
-        data["mentors"] = task.getField(fields.MENTORS) || [];
-        data["external_url"] = task.getField(fields.EXTERNAL_URL) || "";
+        data.status = task.getField(fields.STATUS) || 1;
+        data.mentors = task.getField(fields.MENTORS) || [];
+        data.external_url = task.getField(fields.EXTERNAL_URL) || "";
 
         return data;
     }
 
     /**
-     *  Attempts to match a task by either google id or trello id prioritising google id.
+     * Attempts to match a task by either google id or trello id (prioritising google id).
      *
      * @param task {Task} The task to match with
-     * @param data The data to match with
+     * @param data {RawGoogle} The data to match with
      * @return {Boolean} True if the data and the task match, False otherwise
      */
     doesTaskMatchData(task, data) {
-        return task.getField(fields.GOOGLE_ID) === data["id"] || task.getField(fields.TRELLO_ID) === data["private_metadata"];
+        return task.getField(fields.GOOGLE_ID) === data.id || task.getField(fields.TRELLO_ID) === data.private_metadata;
     }
 
     /**
      *  Overwrite a task with the given data.
      *
-     * @param data The data to write in
+     *  The field is only overwritten following the rules given in {@link ApiInterface#loadAllTasks()}
+     *
+     * @param data {RawGoogle} The data to write in
      * @param task {Task} The task to overwrite
      */
     loadIntoTask(data, task) {
-        task.setIfData(fields.GOOGLE_ID, data["id"]);
-        task.setIfData(fields.NAME, data["name"]);
-        task.setIfData(fields.DESCRIPTION, data["description"]);
-        task.setIfData(fields.MAX_INSTANCES, data["max_instances"]);
-        task.setIfData(fields.TAGS, data["tags"]);
-        task.setIfData(fields.IS_BEGINNER, data["is_beginner"]);
-        task.setIfData(fields.CATEGORIES, data["categories"]);
-        task.setIfData(fields.DAYS, data["time_to_complete_in_days"]);
-        task.setIfData(fields.TRELLO_ID, data["private_metadata"]);
+        task.setIfData(fields.GOOGLE_ID, data.id);
+        task.setIfData(fields.NAME, data.name);
+        task.setIfData(fields.DESCRIPTION, data.description);
+        task.setIfData(fields.MAX_INSTANCES, data.max_instances);
+        task.setIfData(fields.TAGS, data.tags);
+        task.setIfData(fields.IS_BEGINNER, data.is_beginner);
+        task.setIfData(fields.CATEGORIES, data.categories);
+        task.setIfData(fields.DAYS, data.time_to_complete_in_days);
+        task.setIfData(fields.TRELLO_ID, data.private_metadata);
 
         // Un-replicated fields
-        task.setIfData(fields.STATUS, data["status"]);
-        task.setIfData(fields.MENTORS, data["mentors"]);
-        task.setIfData(fields.EXTERNAL_URL, data["external_url"]);
-
+        task.setIfData(fields.STATUS, data.status);
+        task.setIfData(fields.MENTORS, data.mentors);
+        task.setIfData(fields.EXTERNAL_URL, data.external_url);
 
         // Read-only fields
-        task.setIfData(fields.AVAILABLE_COUNT, data["available_count"]);
-        task.setIfData(fields.CLAIMED_COUNT, data["claimed_count"]);
-        task.setIfData(fields.COMPLETED_COUNT, data["completed_count"]);
-        task.setIfData(fields.LAST_MODIFIED, data["last_modified"]);
+        task.setIfData(fields.AVAILABLE_COUNT, data.available_count);
+        task.setIfData(fields.CLAIMED_COUNT, data.claimed_count);
+        task.setIfData(fields.COMPLETED_COUNT, data.completed_count);
+        task.setIfData(fields.LAST_MODIFIED, data.last_modified);
     }
 }
 
