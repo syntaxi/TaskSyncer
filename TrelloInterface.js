@@ -117,10 +117,6 @@ class TrelloInterface extends ApiInterface {
         super.loadTask(task); //TODO: Implement
     }
 
-    writeAllTasks(taskList) {
-        return Promise.all(taskList.tasks.map(task => this.writeTask(task)));
-    }
-
     /**
      *
      * @param task {Task}

@@ -32,9 +32,7 @@ class GoogleInterface extends ApiInterface {
      * Update the Google Id in the task if applicable
      * @param taskList {TaskList}
      */
-    writeAllTasks(taskList) {
-        return Promise.all(taskList.tasks.map(task => this.writeTask(task)));
-    }
+
 
     /**
      *  Writes a single task to google.
