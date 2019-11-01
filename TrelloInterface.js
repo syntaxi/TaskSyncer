@@ -4,6 +4,12 @@ const {categoryLists, customFields} = require("./config.json");
 const ApiInterface = require("./ApiInterface.js");
 
 class TrelloInterface extends ApiInterface {
+    updateOtherId(task) {
+        return requester.updateCustomField(
+            task.getField(fields.TRELLO_ID),
+            customFields.googleId,
+            this.getCustomFieldFromTask(fields.GOOGLE_ID, task));
+    }
 
     loadAllTasks(taskList) {
         return requester.getAllCards().then(rawCards => {

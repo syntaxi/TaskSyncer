@@ -4,6 +4,10 @@ const ApiInterface = require("./ApiInterface.js");
 const Promise = require("bluebird");
 
 class GoogleInterface extends ApiInterface {
+    updateOtherId(task) {
+        return requester.updateTask(task, this.taskToRaw(task));
+    }
+
     /**
      * Loads all the tasks from GCI into the list.
      * If possible tasks will be overwritten

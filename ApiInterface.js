@@ -30,6 +30,14 @@ class ApiInterface {
     loadTask(task) {
         throw new Error("Method Unimplemented");
     }
+
+    /**
+     *
+     * @param task {Task}
+     */
+    updateOtherId(task) {
+        throw new Error("Method Unimplemented");
+    }
 }
 
 module.exports = ApiInterface;
