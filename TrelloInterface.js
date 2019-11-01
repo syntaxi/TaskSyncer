@@ -177,9 +177,15 @@ class TrelloInterface extends ApiInterface {
         return this.writeOrCreate(task, rawMain)
             .then(() =>
                 this._updateAllFields(task.getField(fields.TRELLO_ID), rawCustomFields))
-            .then(() =>
-                console.log(`Card '${task.getField(fields.NAME)}' ${task.wasFieldUpdated(fields.TRELLO_ID) ? 'created' : 'updated'} on Trello`)
-            );
+            .then(() => {
+                if (task.wasFieldUpdated(fields.TRELLO_ID)) {// We made a new task
+                    console.log(`Card '${task.getField(fields.NAME)}' created on Trello`);
+                    task.trelloCardMade = true;
+                } else {
+                    console.log(`Card '${task.getField(fields.NAME)}' updated on Trello`);
+                    task.trelloCardMade = false;
+                }
+            });
     }
 
     /**

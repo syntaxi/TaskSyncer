@@ -1,8 +1,16 @@
 const Task = require('./Task');
 
+const trelloInterface = require("./TrelloInterface.js");
+const googleInterface = require("./GoogleInterface.js");
+
 class TaskList {
 
+
     constructor() {
+        /**
+         *
+         * @type {Array<Task>}
+         */
         this.tasks = [];
     }
 
@@ -42,9 +50,22 @@ class TaskList {
     /**
      *
      * @param apiInterface {ApiInterface}
+     * @param propagateIds
      */
-    writeUsingInterface(apiInterface) {
-        return apiInterface.writeAllTasks(this);
+    writeUsingInterface(apiInterface, propagateIds) {
+        return apiInterface.writeAllTasks(this)
+            .tap(() => {
+                if (propagateIds) {
+                    for (let task of this.tasks) {
+                        if (task.trelloCardMade) { // If we made a trello then google needs to link to it
+                            googleInterface.updateOtherId(task);
+                        }
+                        if (task.googleTaskMade) { // If we made a google then trello needs to link to it
+                            trelloInterface.updateOtherId(task);
+                        }
+                    }
+                }
+            })
     }
 }
 

@@ -47,10 +47,15 @@ class GoogleInterface extends ApiInterface {
     writeTask(task) {
         task.resetUpdatedFields();
         return this.writeOrCreate(task)
-            .then(() =>
-                // We made a new task
-                console.log(`Task '${task.getField(fields.NAME)}' ${task.wasFieldUpdated(fields.GOOGLE_ID) ? 'created' : 'updated'} on GCI`)
-            );
+            .then(() => {
+                if (task.wasFieldUpdated(fields.GOOGLE_ID)) {// We made a new task
+                    console.log(`Task '${task.getField(fields.NAME)}' created on GCI`);
+                    task.googleTaskMade = true;
+                } else {
+                    console.log(`Task '${task.getField(fields.NAME)}' updated on GCI`);
+                    task.googleTaskMade = false;
+                }
+            });
     }
 
     loadTask(task) {

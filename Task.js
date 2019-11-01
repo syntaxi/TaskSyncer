@@ -15,6 +15,8 @@ class Task {
             }
         }
 
+        this.googleTaskMade = false;
+        this.trelloCardMade = false;
         this.updatedFields = new Set();
     }
 
