@@ -69,10 +69,18 @@ class TrelloApiRequester extends BaseApiRequester {
 
     }
 
+    updateTrelloWebhook(webhookId, card) {
+        return this.queueRequest(this.buildTrelloPut(`webhooks/${webhookId}`, {
+            idModel: card,
+            description: `Webhook updated for ${card}`,
+            callbackUrl: callbackUrl
+        }))
+    }
+
     createTrelloWebhook(card) {
         return this.queueRequest(this.buildTrelloPost("webhooks/", {
             idModel: card,
-            description: `Update webhook for ${card}`,
+            description: `Webhook created for ${card}`,
             callbackURL: callbackUrl
         }));
     }
