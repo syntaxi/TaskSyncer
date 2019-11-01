@@ -129,7 +129,8 @@ class TrelloInterface extends ApiInterface {
 
         delete rawMain["id"];
         rawMain["idList"] = listId;
-        return requester.createCard(rawMain);
+        return requester.createCard(rawMain)
+            .tap(response => task.setField(fields.TRELLO_ID, response["id"]));
     }
 
     /**
@@ -164,22 +165,14 @@ class TrelloInterface extends ApiInterface {
     }
 
     writeTask(task) {
+        task.resetUpdatedFields();
         let rawMain = this.mainToRaw(task);
         let rawCustomFields = this.customToRaw(task);
         return this.writeOrCreate(task, rawMain)
-            .then(result =>
-                // We use result["id"] here because we might have made a new card,
-                // in which case task.getField(fields.TRELLO_ID) will not be valid
-                this._updateAllFields(result["id"], rawCustomFields)
-                    .then(() => {
-                        // We need to keep closure on `result`
-                        if (result["id"] !== task.getField(fields.TRELLO_ID)) {
-                            task.setField(fields.TRELLO_ID, result["id"]);
-                            console.log(`Card '${task.getField(fields.NAME)}' created on Trello`);
-                        } else {
-                            console.log(`Card '${task.getField(fields.NAME)}' updated on Trello`);
-                        }
-                    })
+            .then(() =>
+                this._updateAllFields(task.getField(fields.TRELLO_ID), rawCustomFields))
+            .then(() =>
+                console.log(`Card '${task.getField(fields.NAME)}' ${task.wasFieldUpdated(fields.TRELLO_ID) ? 'created' : 'updated'} on Trello`)
             );
     }
 

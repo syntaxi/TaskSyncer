@@ -14,6 +14,16 @@ class Task {
                 this.fields[defaultField] = defaults[defaultField];
             }
         }
+
+        this.updatedFields = new Set();
+    }
+
+    resetUpdatedFields() {
+        this.updatedFields = new Set();
+    }
+
+    wasFieldUpdated(fieldId) {
+        return this.updatedFields.has(fieldId);
     }
 
     /**
@@ -60,6 +70,7 @@ class Task {
     setField(fieldName, value) {
         if (this.fields.hasOwnProperty(fieldName)) {
             this.fields[fieldName] = value;
+            this.updatedFields.add(fieldName)
         } else {
             throw new Error(`Attempted to set unknown field '${fieldName}' to value '${value}'`);
         }

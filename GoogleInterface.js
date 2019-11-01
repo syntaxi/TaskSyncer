@@ -32,6 +32,23 @@ class GoogleInterface extends ApiInterface {
         return Promise.all(taskList.tasks.map(task => this.writeTask(task)));
     }
 
+    /**
+     *  Writes a single task to google.
+     *  If it can find a task using the {@link fields.GOOGLE_ID} field then it will update that one,
+     *  if it cannot then it will create a new task.
+     *
+     *  Updating a task will overwrite all fields with the data in the task.
+     * @param task {Task} The task to push to GCI
+     */
+    writeTask(task) {
+        task.resetUpdatedFields();
+        return this.writeOrCreate(task)
+            .then(() =>
+                // We made a new task
+                console.log(`Task '${task.getField(fields.NAME)}' ${task.wasFieldUpdated(fields.GOOGLE_ID) ? 'created' : 'updated'} on GCI`)
+            );
+    }
+
     loadTask(task) {
         super.loadTask(task);  //TODO: Implement
     }
@@ -49,33 +66,14 @@ class GoogleInterface extends ApiInterface {
                     reason => {
                         if (reason.statusCode === 404) {
                             console.log(`Updating task '${task.getField(fields.NAME)}' failed. Creating new task`);
-                            return requester.createTask(rawTask);
+                            return requester.createTask(rawTask)
+                                .tap(response => task.setField(fields.GOOGLE_ID, response[id]));
                         }
                     });
         } else {
-            return requester.createTask(rawTask);
+            return requester.createTask(rawTask)
+                .tap(response => task.setField(fields.GOOGLE_ID, response[id]));
         }
-    }
-
-    /**
-     *  Writes a single task to google.
-     *  If it can find a task using the {@link fields.GOOGLE_ID} field then it will update that one,
-     *  if it cannot then it will create a new task.
-     *
-     *  Updating a task will overwrite all fields with the data in the task.
-     * @param task {Task} The task to push to GCI
-     */
-    writeTask(task) {
-        return this.writeOrCreate(task)
-            .then(result => {
-                if (result["id"] !== task.getField(fields.GOOGLE_ID)) {
-                    // We made a new task
-                    console.log(`Task '${task.getField(fields.NAME)}' created on GCI`);
-                    task.setField(fields.GOOGLE_ID, result["id"]);
-                } else {
-                    console.log(`Task '${task.getField(fields.NAME)}' updated on GCI`);
-                }
-            });
     }
 
     /**
