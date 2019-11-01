@@ -86,6 +86,7 @@ class TrelloInterface extends ApiInterface {
         task.setIfData(fields.TRELLO_ID, rawCard["id"]);
         task.setIfData(fields.DESCRIPTION, rawCard["desc"]);
         task.setIfData(fields.NAME, rawCard["name"]);
+
         task.setIfData(fields.GOOGLE_ID, this.getCustomFieldFromData(customFields.googleId, rawCard));
         task.setIfData(fields.DAYS, this.getCustomFieldFromData(customFields.days, rawCard));
         task.setIfData(fields.CATEGORIES, this.parseCategories(rawCard));
@@ -106,7 +107,7 @@ class TrelloInterface extends ApiInterface {
     }
 
     loadTask(task) {
-        super.loadTask(task);
+        super.loadTask(task); //TODO: Implement
     }
 
     writeAllTasks(taskList) {

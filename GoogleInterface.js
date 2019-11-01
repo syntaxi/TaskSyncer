@@ -32,9 +32,13 @@ class GoogleInterface extends ApiInterface {
         return Promise.all(taskList.tasks.map(task => this.writeTask(task)));
     }
 
+    loadTask(task) {
+        super.loadTask(task);  //TODO: Implement
+    }
+
     /**
      *
-     * @param task
+     * @param task {Task}
      * @return {Promise|Promise<any | never>}
      */
     writeOrCreate(task) {

@@ -104,16 +104,9 @@ function _createExpressApp() {
 
 // listenToChanges();
 //
-// const googleInterface = require("./GoogleInterface.js");
 const newTaskList = require("./TaskList.js");
 const trelloInterface = require("./TrelloInterface.js");
 const googleInterface = require("./GoogleInterface.js");
-//
-// googleInterface.loadAllTasks(newTaskList).then(
-//     () => {
-//         googleInterface.writeTask(newTaskList.tasks[0]);
-//     }
-// );
 
 // Treats google as the source of truth.
 trelloInterface.loadAllTasks(newTaskList) // Load things from trello
