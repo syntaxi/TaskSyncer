@@ -33,10 +33,18 @@ class TaskList {
 
     /**
      * Loads all the tasks from an interface
-     * @param apiInterface {GoogleInterface}
+     * @param apiInterface {ApiInterface}
      */
-    loadUsingParser(apiInterface) {
-        apiInterface.loadAllTasks(this)
+    loadUsingInterface(apiInterface) {
+        return apiInterface.loadAllTasks(this)
+    }
+
+    /**
+     *
+     * @param apiInterface {ApiInterface}
+     */
+    writeUsingInterface(apiInterface) {
+        return apiInterface.writeAllTasks(this);
     }
 }
 

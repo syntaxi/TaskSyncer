@@ -109,10 +109,12 @@ const trelloInterface = require("./TrelloInterface.js");
 const googleInterface = require("./GoogleInterface.js");
 
 // Treats google as the source of truth.
-trelloInterface.loadAllTasks(newTaskList) // Load things from trello
-    .then(() => googleInterface.loadAllTasks(newTaskList)) // Overwrite them with the stuff from google
-    .then(() => googleInterface.writeAllTasks(newTaskList)) // Write this new list back to google
-    .then(() => trelloInterface.writeAllTasks(newTaskList)) // Write this new list back to trello
+
+
+newTaskList.loadUsingInterface(trelloInterface) // Load things from trello
+    .then(() => newTaskList.loadUsingInterface(googleInterface)) // Overwrite them with the stuff from google
+    .then(() => newTaskList.writeUsingInterface(googleInterface)) // Write this new list back to google
+    .then(() => newTaskList.writeUsingInterface(trelloInterface)) // Write this new list back to trello
     .then(result => {
         console.log("Finished!");
     });
