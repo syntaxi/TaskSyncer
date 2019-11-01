@@ -76,8 +76,8 @@ class GoogleInterface extends ApiInterface {
      * Attempts to either write the given data to a pre-existing entry,
      * If that fails, then falls back to creating a new entry and updating that instead
      *
-     * @param task {Task}
-     * @return {Promise<RawGoogle>}
+     * @param task {Task} The task to update/create
+     * @return {Promise<RawGoogle>} The raw task data
      */
     writeOrCreate(task) {
         let rawTask = this.taskToRaw(task);
