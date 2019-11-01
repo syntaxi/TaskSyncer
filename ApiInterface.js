@@ -1,4 +1,3 @@
-const Promise = require("bluebird");
 
 /**
  * The ApiInterface is the class that does the bulk lifting in converting the data in a task, into the data a service uses.

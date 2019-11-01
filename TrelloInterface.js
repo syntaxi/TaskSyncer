@@ -2,7 +2,6 @@ const requester = require("./TrelloApiRequester.js");
 const {fields, categories} = require("./Globals");
 const {categoryLists, customFields} = require("./config.json");
 const ApiInterface = require("./ApiInterface.js");
-const Promise = require("bluebird");
 
 class TrelloInterface extends ApiInterface {
     updateOtherId(task) {

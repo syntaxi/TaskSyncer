@@ -1,5 +1,3 @@
-const Promise = require("bluebird");
-
 /**
  * The base class that implements the common requesting components of all requester types.
  * In particular implements rate limiting to ensure that calls don't fail due to being rate limited

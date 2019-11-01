@@ -1,7 +1,6 @@
 const requester = require("./GoogleApiRequester.js");
 const {fields} = require("./Globals");
 const ApiInterface = require("./ApiInterface.js");
-const Promise = require("bluebird");
 
 class GoogleInterface extends ApiInterface {
     updateOtherId(task) {

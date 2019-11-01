@@ -1,9 +1,11 @@
 "use strict";
+global.Promise = require("bluebird"); // Globally use bluebird for promises
+const express = require('express');
+const bodyParser = require('body-parser');
+
 const taskList = require('./TaskList');
 const {writeTypes} = require('./Globals');
 
-const express = require('express');
-const bodyParser = require('body-parser');
 
 function syncToGoogle() {
     /* First we load from Google */

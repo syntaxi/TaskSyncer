@@ -1,5 +1,4 @@
 const tokens = require('./tokens.json');
-const Promise = require("bluebird");
 const {categoryLists, callbackUrl} = require("./config.json");
 const BaseApiRequester = require("./BaseApiRequester.js");
 
