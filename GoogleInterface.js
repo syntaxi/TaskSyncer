@@ -81,7 +81,7 @@ class GoogleInterface extends ApiInterface {
                     });
         } else {
             return requester.createTask(rawTask)
-                .tap(response => task.setField(fields.GOOGLE_ID, response[id]));
+                .tap(response => task.setField(fields.GOOGLE_ID, response["id"]));
         }
     }
 

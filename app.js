@@ -1,7 +1,6 @@
 "use strict";
 const taskList = require('./TaskList');
 const {writeTypes} = require('./Globals');
-const requester = require('./ApiRequester');
 
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -113,8 +112,8 @@ const googleInterface = require("./GoogleInterface.js");
 
 newTaskList.loadUsingInterface(trelloInterface) // Load things from trello
     .then(() => newTaskList.loadUsingInterface(googleInterface)) // Overwrite them with the stuff from google
-    .then(() => newTaskList.writeUsingInterface(googleInterface)) // Write this new list back to google
-    .then(() => newTaskList.writeUsingInterface(trelloInterface)) // Write this new list back to trello
+    .then(() => newTaskList.writeUsingInterface(googleInterface, true)) // Write this new list back to google
+    .then(() => newTaskList.writeUsingInterface(trelloInterface, true)) // Write this new list back to trello
     .then(result => {
         console.log("Finished!");
     });
