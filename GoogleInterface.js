@@ -42,6 +42,7 @@ class GoogleInterface extends ApiInterface {
             for (let rawTask of rawTasks) {
                 let task = taskList.getOrMakeTask(task => this.doesTaskMatchData(task, rawTask));
                 this.loadIntoTask(rawTask, task);
+                console.log(`Loaded task '${task.getField(fields.NAME)}' from GCI`);
             }
             return taskList;
         })

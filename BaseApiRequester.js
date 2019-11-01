@@ -39,7 +39,7 @@ class BaseApiRequester {
      */
     resetRateLimit() {
         if (this.requestsCount !== 0) {
-            console.log(`Resetting requests count for ${this.getName()}`)
+            // console.log(`Resetting requests count for ${this.getName()}`)
         }
         this.requestsCount = 0;
         this.processRequests();

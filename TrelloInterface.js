@@ -16,6 +16,7 @@ class TrelloInterface extends ApiInterface {
             for (let rawCard of rawCards) {
                 let task = taskList.getOrMakeTask(task => this.doesTaskMatchData(task, rawCard));
                 this.loadIntoTask(rawCard, task);
+                console.log(`Loaded card '${task.getField(fields.NAME)}' from Trello`);
             }
             return taskList;
         });
