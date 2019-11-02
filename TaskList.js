@@ -48,24 +48,30 @@ class TaskList {
     }
 
     /**
+     * Where a new entry in a service was made, propagate that ID to the other services
+     * This ensures that the data in the services is still linked
+     * @return {Promise<void>} A promise that finishes when all ID's have been propagated
+     * @private
+     */
+    async _propagateIds() {
+        for (let task of this.tasks) {
+            if (task.trelloCardMade) { // If we made a trello then google needs to link to it
+                await googleInterface.updateOtherId(task);
+            }
+            if (task.googleTaskMade) { // If we made a google then trello needs to link to it
+                await trelloInterface.updateOtherId(task);
+            }
+        }
+    }
+
+    /**
      *
      * @param apiInterface {ApiInterface}
      * @param propagateIds
      */
     writeUsingInterface(apiInterface, propagateIds) {
         return apiInterface.writeAllTasks(this)
-            .tap(() => {
-                if (propagateIds) {
-                    for (let task of this.tasks) {
-                        if (task.trelloCardMade) { // If we made a trello then google needs to link to it
-                            googleInterface.updateOtherId(task);
-                        }
-                        if (task.googleTaskMade) { // If we made a google then trello needs to link to it
-                            trelloInterface.updateOtherId(task);
-                        }
-                    }
-                }
-            })
+            .tap(() => propagateIds ? this._propagateIds() : undefined)
     }
 }
 
