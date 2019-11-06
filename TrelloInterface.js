@@ -14,7 +14,7 @@ const ApiInterface = require("./ApiInterface.js");
  *      idList: string
  *      name: string
  * }} RawTrello
- * 
+ *
  * @typedef {{
  *      [idCustomField]: string
  *      value: ({text: string}|undefined|{checked: string}|{number: string})
@@ -24,6 +24,23 @@ const ApiInterface = require("./ApiInterface.js");
  * @see ApiInterface
  */
 class TrelloInterface extends ApiInterface {
+
+    /**
+     * Update the category custom fields on the card.
+     * This is intended to be used with the {@link Task#listCategoryAdded} field in order to detect if the card
+     * is in a list it didn't have a category for.
+     *
+     * @param task {Task} The task to check and update
+     * @return {Promise} A promise that is fulfilled when the update is completed
+     */
+    propagateCategoryChange(task) {
+        // Replicate this category change
+        return this._updateAllFields(task.getField(fields.TRELLO_ID), this.serialiseCategories(task))
+            .then(() => {
+                console.log(`Card '${task.getField(fields.NAME)}' (${task.getField(fields.TRELLO_ID)}) category change propagated`)
+            });
+    }
+
     /**
      * @inheritDoc
      */
@@ -39,12 +56,20 @@ class TrelloInterface extends ApiInterface {
      */
     loadAllTasks(taskList) {
         return requester.getAllCards().then(rawCards => {
+            let tasksToUpdate = [];
             for (let rawCard of rawCards) {
                 let task = taskList.getOrMakeTask(task => this.doesTaskMatchData(task, rawCard));
+                task.listCategoryAdded = false;
                 this.loadIntoTask(rawCard, task);
+                if (task.listCategoryAdded) {
+                    tasksToUpdate.push(task);
+                }
                 console.log(`Loaded card '${task.getField(fields.NAME)}' from Trello`);
             }
-            return taskList;
+
+            // Propagate all category changes
+            return Promise.all(tasksToUpdate.map(task => this.propagateCategoryChange(task)))
+                .then(() => taskList); // Make the chain return the task list
         });
     }
 
