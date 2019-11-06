@@ -3,6 +3,39 @@ const {categoryLists, callbackUrl, boardId, botMemberId} = require("./config.jso
 const express = require('express');
 const bodyParser = require('body-parser');
 const requester = require("./TrelloApiRequester.js");
+/**
+ *
+ * @typedef {{
+ *     active: boolean
+ *     callbackURL: string
+ *     consecutiveFailures: number
+ *     description: string
+ *     firstConsecutiveFailDate: string
+ *     id: string
+ *     idModel: string
+ * }} RawTrelloWebhook
+ *
+ *
+ * @typedef {{
+ *      date: string
+ *      id: string
+ *      idMemberCreator: string
+ *      type: string
+ *      display: {
+ *          translationKey: string
+ *      }
+ *      data: {
+ *          card: {idList: string,id: string,name: string, [desc]:string}
+ *          [listAfter]: IdNameTuple
+ *          [listBefore]: IdNameTuple
+ *          [customField]: IdNameTuple
+ *          [customFieldItem]: RawCustomField
+ *      }
+ * }} WebhookAction
+ *
+ * @typedef {{id: string, name: string}} IdNameTuple
+ *
+ */
 class TrelloMonitor {
     /**
      * @inheritDoc
