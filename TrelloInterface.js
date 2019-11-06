@@ -7,16 +7,17 @@ const ApiInterface = require("./ApiInterface.js");
  * An interface between the Trello Board and the GCI Site
  *
  * @typedef {{
- *      id:string
+ *      id: string
  *      customFieldItems: [RawCustomField]
  *      dateLastActivity: string
  *      desc: string
  *      idList: string
- *      name:string
+ *      name: string
  * }} RawTrello
+ * 
  * @typedef {{
- *      [idCustomField]:string
- *      value: {text:string}|{checked:string}|{number:string}
+ *      [idCustomField]: string
+ *      value: ({text: string}|undefined|{checked: string}|{number: string})
  * }} RawCustomField
  *
  *
@@ -71,6 +72,7 @@ class TrelloInterface extends ApiInterface {
                     console.log(`Card '${task.getField(fields.NAME)}' updated on Trello`);
                     task.trelloCardMade = false;
                 }
+                return task;
             });
     }
 
@@ -235,10 +237,11 @@ class TrelloInterface extends ApiInterface {
 
         task.setIfData(fields.GOOGLE_ID, this.getCustomFieldFromData(customFields.googleId, rawCard));
         task.setIfData(fields.DAYS, this.getCustomFieldFromData(customFields.days, rawCard));
-        task.setIfData(fields.CATEGORIES, this.parseCategories(rawCard));
         task.setIfData(fields.IS_BEGINNER, this.getCustomFieldFromData(customFields.isBeginner, rawCard));
-        task.setIfData(fields.TAGS, this.parseTags(rawCard));
         task.setIfData(fields.MAX_INSTANCES, this.getCustomFieldFromData(customFields.instances, rawCard));
+
+        this.parseCategories(task, rawCard);
+        task.setIfData(fields.TAGS, this.parseTags(rawCard));
 
         // Not replicated
         // task.setIfData(fields.STATUS, null); Not stored on trello
@@ -322,7 +325,7 @@ class TrelloInterface extends ApiInterface {
      * Converts all the custom fields on a task into their raw form
      *
      * @param task {Task} The task to convert
-     * @return {Object.<string,RawCustomField>} The custom fields in raw form
+     * @return {Object.<string, RawCustomField>} The custom fields in raw form
      */
     customToRaw(task) {
         let rawCustom = this.serialiseCategories(task);
