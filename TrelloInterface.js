@@ -158,19 +158,8 @@ class TrelloInterface extends ApiInterface {
     getCustomFieldFromData(fieldId, data) {
         if ("customFieldItems" in data) {
             let field = data.customFieldItems.find(checkField => checkField.idCustomField === fieldId);
-            if (field) {
-                if ("checked" in field.value) {
-                    return field.value.checked === 'true';
-                } else if ("number" in field.value) {
-                    parseInt(field.value.number);
-                } else if ("text" in field.value) {
-                    return field.value.text;
-                } else {
-                    throw new TypeError(`Custom field contains unknown value type: ${field}`);
-                }
-            } else {
-                return undefined;
-            }
+            return this.customFieldToValue(field);
+
         } else {
             return undefined;
         }
@@ -279,16 +268,47 @@ class TrelloInterface extends ApiInterface {
      * @return {RawCustomField} The field in raw form
      */
     getCustomFieldFromTask(fieldId, task) {
-        let val = task.getField(fieldId);
-        switch (typeof val) {
+        return this.valueToCustomField(task.getField(fieldId));
+    }
+
+    /**
+     *
+     * @param field {RawCustomField}
+     */
+    customFieldToValue(field) {
+        if (field) {
+            if (field.value === null) {
+                return false; // An unchecked value can simply be given as null
+            } else if ("checked" in field.value) {
+                return field.value.checked === 'true';
+            } else if ("number" in field.value) {
+                parseInt(field.value.number);
+            } else if ("text" in field.value) {
+                return field.value.text;
+            } else {
+                throw new TypeError(`Custom field contains unknown value type: ${field}`);
+            }
+        } else {
+            return undefined;
+        }
+    }
+
+    /**
+     *
+     * @param value
+     *
+     * @returns {RawCustomField} The value as a custom field
+     */
+    valueToCustomField(value) {
+        switch (typeof value) {
             case 'boolean':
-                return {value: {checked: val.toString()}};
+                return {value: {checked: value.toString()}};
             case 'string':
-                return {value: {text: val.toString()}};
+                return {value: {text: value.toString()}};
             case 'number':
-                return {value: {number: val.toString()}};
+                return {value: {number: value.toString()}};
             default:
-                throw  TypeError("Unknown type for trello custom field: " + typeof val);
+                throw  TypeError("Unsupported type for trello custom field: " + typeof value);
         }
     }
 
