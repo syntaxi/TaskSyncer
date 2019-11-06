@@ -17,6 +17,7 @@ class Task {
 
         this.googleTaskMade = false;
         this.trelloCardMade = false;
+        this.listCategoryAdded = false;
         this.updatedFields = new Set();
     }
 
