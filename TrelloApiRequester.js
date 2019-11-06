@@ -54,7 +54,7 @@ class TrelloApiRequester extends BaseApiRequester {
      * Writes data to the main trello card
      * @param id The id of the card to write to
      * @param data A key-value object of the data to write
-     * @return {Promise<any>}
+     * @return {Promise<RawTrello>}
      */
     updateCardMain(id, data) {
         return this.queueRequest(this.buildTrelloPut(`cards/${id}`, data));
