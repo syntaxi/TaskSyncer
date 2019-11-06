@@ -1,4 +1,11 @@
+const trelloInterface = require("./TrelloInterface");
+const {fields, categories} = require("./Globals");
 const {categoryLists, callbackUrl, boardId, botMemberId} = require("./config.json");
+const catLookup = Object.entries(categoryLists).reduce((ret, entry) => {
+    const [key, value] = entry;
+    ret[value] = key;
+    return ret;
+}, {});
 
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -52,6 +59,38 @@ class TrelloMonitor {
      * @param body {WebhookAction}
      */
     onWebhookActivate(body) {
+        let actionType = body.display.translationKey;
+
+        switch (actionType) {
+            case "action_renamed_card":
+            case "action_changed_description_of_card":
+                return this.onMainChanged(body.data.card);
+            case "action_update_custom_field_item":
+                return this.onCustomChanged(body.data.customField, body.data.customFieldItem, body.data.card);
+            case "action_create_card":
+                return this.onCardCreated(body.data.card);
+            case "action_archived_card":
+                return this.onCardDeleted(body.data.card);
+            case "action_move_card_from_list_to_list":
+                let movedInto = !!catLookup[body.data.listAfter.id];
+                let movedOut = !!catLookup[body.data.listBefore.id];
+
+                if (movedInto && movedOut) { // Moved card
+                    return this.onCardMoved(body.data.listBefore, body.data.listAfter, body.data.card);
+                } else if (movedInto && !movedOut) { // New card
+                    return this.onCardCreated(body.data.card);
+                } else if (!movedInto && movedOut) { //Delete card
+                    return this.onCardDeleted(body.data.card);
+                } else {
+                    //fallthrough to print
+                }
+            // fallthrough when else is hit
+            default:
+                console.error("Irrelevant webhook trigger")
+        }
+    }
+
+
     /**
      * Updates all trello webhooks.
      *
