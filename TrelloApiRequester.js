@@ -69,22 +69,26 @@ class TrelloApiRequester extends BaseApiRequester {
 
     }
 
-    updateTrelloWebhook(webhookId, card) {
-        return this.queueRequest(this.buildTrelloPut(`webhooks/${webhookId}`, {
-            idModel: card,
-            description: `Webhook updated for ${card}`,
-            callbackUrl: callbackUrl
+    updateTrelloWebhook(webhookId, elementId) {
+        return this.queueRequest(this.buildTrelloPut(`webhooks/${webhookId}`, undefined, {
+            idModel: elementId,
+            description: `Webhook updated for ${elementId}`,
+            callbackURL: callbackUrl
         }))
     }
 
-    createTrelloWebhook(card) {
+    createTrelloWebhook(elementId) {
         return this.queueRequest(this.buildTrelloPost("webhooks/", {
-            idModel: card,
-            description: `Webhook created for ${card}`,
+            idModel: elementId,
+            description: `Webhook created for ${elementId}`,
             callbackURL: callbackUrl
         }));
     }
 
+    /**
+     *
+     * @return {Promise<[RawTrelloWebhook]>}
+     */
     getTrelloWebhooks() {
         return this.queueRequest(this.buildTrelloGet(`tokens/${this.token}/webhooks`));
     }
@@ -96,18 +100,18 @@ class TrelloApiRequester extends BaseApiRequester {
     /**
      * Builds the options for a get request to trello
      * @param path
-     * @param [querys]
+     * @param [queries]
      * @return {{method: string, uri: string, json: boolean}}
      */
-    buildTrelloGet(path, querys) {
-        querys = querys || {};
+    buildTrelloGet(path, queries) {
+        queries = queries || {};
         return {
             method: "GET",
             uri: `https://api.trello.com/1/${path}`,
             qs: {
                 key: this.key,
                 token: this.token,
-                ...querys //Adds all the entries in queries to the data
+                ...queries //Adds all the entries in queries to the data
             },
             json: true
         };
