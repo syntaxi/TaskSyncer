@@ -3,12 +3,13 @@ global.Promise = require("bluebird"); // Globally use bluebird for promises
 
 const newTaskList = require("./TaskList.js");
 const trelloInterface = require("./TrelloInterface.js");
+const trelloMonitor = require("./TrelloMonitor.js");
 const googleInterface = require("./GoogleInterface.js");
 
 // Treats google as the source of truth.
 
 newTaskList.loadUsingInterface(trelloInterface)
-    .then(() => trelloInterface.setupMonitoring(newTaskList));
+    .then(() => trelloMonitor.setupMonitoring(newTaskList));
 
 // newTaskList.loadUsingInterface(trelloInterface) // Load things from trello
 //     .then(() => newTaskList.loadUsingInterface(googleInterface)) // Overwrite them with the stuff from google
