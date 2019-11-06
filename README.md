@@ -12,6 +12,39 @@ Make a json file called tokens.json in the root directory with the following str
 }
 ```
 
+next, make a file called `config.json` and fill it out as below
+```json
+{
+  "boardId": <Trello ID here>,
+  "categoryLists": {
+    "1": <Trello ID here>,
+    "2": <Trello ID here>,
+    "3": <Trello ID here>,
+    "4": <Trello ID here>,
+    "5": <Trello ID here>
+  },
+  "customFields": {
+    "isBeginner": <Trello ID here>,
+    "days": <Trello ID here>,
+    "tags": <Trello ID here>,
+    "instances": <Trello ID here>,
+    "googleId": <Trello ID here>,
+    "isCode": <Trello ID here>,
+    "isDesign": <Trello ID here>,
+    "isDocs": <Trello ID here>,
+    "isQa": <Trello ID here>,
+    "isOutResearch": <Trello ID here>
+  },
+  "callbackUrl": <Trello ID here>,
+  "botMemberId": <Trello ID here>,
+  "defaults": {
+    "days": 3,
+    "isBeg": false,
+    "maxInst": 1
+  }
+}
+```
+
 then simply run. You can edit the methods in `app.js` to change where the tasks are read from and where they are written to.
 
 
