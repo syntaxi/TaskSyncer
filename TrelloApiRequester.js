@@ -46,6 +46,10 @@ class TrelloApiRequester extends BaseApiRequester {
         return this.queueRequest(this.buildTrelloPost(`cards`, rawMain));
     }
 
+    getCard(id) {
+        return this.queueRequest((this.buildTrelloGet(`cards/${id}`, {customFieldItems: true})))
+    }
+
     /**
      * Writes data to the main trello card
      * @param id The id of the card to write to
