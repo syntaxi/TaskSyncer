@@ -85,7 +85,23 @@ class Task {
             throw new Error(`Attempted to get unknown field '${fieldName}'`);
         }
     }
-}
 
+    addCategory(category) {
+        let i = this.fields[fields.CATEGORIES].indexOf(category);
+        if (i < 0) {
+            // We only add the field if it isn't already there
+            this.fields[fields.CATEGORIES].push(category);
+        }
+    }
+
+    removeCategory(category) {
+        let i = this.fields[fields.CATEGORIES].indexOf(category);
+        if (i >= 0) {
+            this.fields[fields.CATEGORIES].splice(i, 1);
+        } else {
+            console.error(`Attempted to remove a task '${this.getField(fields.NAME)}'(${this.getField(fields.GOOGLE_ID)}) from a category it wasn't in.`)
+        }
+    }
+}
 
 module.exports = Task;
