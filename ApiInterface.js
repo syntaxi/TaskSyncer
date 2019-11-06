@@ -81,6 +81,17 @@ class ApiInterface {
     updateOtherId(task) {
         throw new Error("Method Unimplemented");
     }
+
+    /**
+     * Activates change monitoring for the service.
+     * This will periodically check for changes in the data on the service and replicate them to the other services.
+     *
+     * @param taskList {TaskList}
+     */
+    setupMonitoring(taskList) {
+
+    }
+
 }
 
 module.exports = ApiInterface;
