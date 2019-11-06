@@ -166,18 +166,13 @@ class TrelloInterface extends ApiInterface {
     }
 
     /**
-     * Extract the categories contained within the card into a task format
+     * Extract the categories contained within the card and place them into the task
      *
+     * @param task {Task} The task to update
      * @param rawCard {RawTrello} The raw card data
-     * @return {[number]} The categories the card is in
      */
-    parseCategories(rawCard) {
+    parseCategories(task, rawCard) {
         let taskCategories = new Set();
-        // Firstly get the categories from the list it's in
-        let listId = Object.keys(categoryLists).find(key => categoryLists[key] === rawCard.idList);
-        if (listId !== undefined) {
-            taskCategories.add(parseInt(listId));
-        }
 
         if (this.getCustomFieldFromData(customFields.isDesign, rawCard)) {
             taskCategories.add(categories.DESIGN)
@@ -194,7 +189,20 @@ class TrelloInterface extends ApiInterface {
         if (this.getCustomFieldFromData(customFields.isQa, rawCard)) {
             taskCategories.add(categories.QA)
         }
-        return [...taskCategories];
+
+        // Then lets add the category for the list it's in
+        let listId = Object.keys(categoryLists).find(key => categoryLists[key] === rawCard.idList);
+        if (listId !== undefined) {
+            listId = parseInt(listId);
+            if (!taskCategories.has(listId)) {
+                taskCategories.add(listId);
+                task.listCategoryAdded = true;
+            }
+        } else {
+            console.error(`Card '${rawCard.name}' (${rawCard.id}) is not in a category list.`);
+        }
+
+        task.setIfData(fields.CATEGORIES, [...taskCategories]);
     }
 
     /**
