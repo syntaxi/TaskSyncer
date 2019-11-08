@@ -1,4 +1,6 @@
 const trelloInterface = require("./TrelloInterface");
+const SiteMonitor = require("./SiteMonitor");
+
 const {fields, categories} = require("./Globals");
 const {categoryLists, callbackUrl, boardId, botMemberId} = require("./config.json");
 const catLookup = Object.entries(categoryLists).reduce((ret, entry) => {
@@ -51,35 +53,8 @@ const requester = require("./TrelloApiRequester.js");
  * @param [fields] {[string]} The fields that were update
  * @return {Promise} A promise that finished when the changes are pushed
  */
-class TrelloMonitor {
-    /**
-     * @type {TaskList} The list to monitor
-     */
-    monitoredList;
-    /**
-     * @type MonitorCallback
-     */
-    createdCallback;
-    /**
-     * @type MonitorCallback
-     */
-    deletedCallback;
-    /**
-     * @type MonitorCallback
-     */
-    alteredCallback;
+class TrelloMonitor extends SiteMonitor {
 
-    /**
-     *
-     * @param created {MonitorCallback}
-     * @param deleted {MonitorCallback}
-     * @param altered {MonitorCallback}
-     */
-    setMonitorCallbacks(created, deleted, altered) {
-        this.createdCallback = created;
-        this.deletedCallback = deleted;
-        this.alteredCallback = altered;
-    }
 
     /**
      * Handles a new card being added to the published lists on trello.
@@ -88,7 +63,6 @@ class TrelloMonitor {
      * @return {WebhookReturn} The task and fields updated
      */
     async onCardCreated(card) {
-        //TODO propagate this change to google
         let rawCard = await requester.getCard(card.id);
         let task = this.monitoredList.getOrMakeTask(task => trelloInterface.doesTaskMatchData(task, rawCard));
         task.listCategoryAdded = false;
@@ -107,7 +81,6 @@ class TrelloMonitor {
      * @return {WebhookReturn} The task and fields updated
      */
     onCardDeleted(card) {
-        //TODO propagate this change to google
         let task = this.monitoredList.getTask(task => task.getField(fields.TRELLO_ID) === card.id);
         this.monitoredList.deleteThisTask(task);
 
@@ -124,7 +97,6 @@ class TrelloMonitor {
     onMainChanged(card) {
         let task = this.monitoredList.getTask(task => task.getField(fields.TRELLO_ID) === card.id);
         if (task) {
-            //TODO propagate this change to google
             task.setField(fields.NAME, card.name);
             task.setField(fields.DESCRIPTION, card.desc);
 
@@ -146,7 +118,6 @@ class TrelloMonitor {
     onCustomChanged(customFieldId, customFieldVal, card) {
         let task = this.monitoredList.getTask(task => task.getField(fields.TRELLO_ID) === card.id);
         if (task) {
-            //TODO propagate this change to google
             let category = -1;
             let fieldVal = trelloInterface.customFieldToValue(customFieldVal);
             let fieldToUpdate;
@@ -223,7 +194,6 @@ class TrelloMonitor {
     async onCardMoved(oldList, newList, card) {
         let task = this.monitoredList.getTask(task => task.getField(fields.TRELLO_ID) === card.id);
         if (task) {
-            //TODO propagate this change to google
             task.removeCategory(parseInt(catLookup[oldList.id]));
             task.addCategory(parseInt(catLookup[newList.id]));
 
