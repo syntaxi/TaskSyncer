@@ -1,4 +1,5 @@
 const TaskList = require("./TaskList.js");
+const {fields, categories} = require("./Globals");
 
 const trelloInterface = require("./TrelloInterface.js");
 const trelloMonitor = require("./TrelloMonitor.js");
@@ -20,7 +21,17 @@ class TaskSyncer {
     }
 
     monitorTrello() {
+        trelloMonitor.setMonitorCallback(this.onTrelloUpdated.bind(this));
         trelloMonitor.setupMonitoring(this.taskList);
+    }
+
+    /**
+     *
+     * @param task {Task}
+     * @param updatedFields {String[]}
+     */
+    onTrelloUpdated(task, updatedFields) {
+        console.log(`Updated task '${task.getField(fields.NAME)}' fields: ${updatedFields.map(val => `'${val}'`).join(", ")}`);
     }
 
     loadFromGoogle() {

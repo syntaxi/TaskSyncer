@@ -41,48 +41,73 @@ const requester = require("./TrelloApiRequester.js");
  *      }
  * }} WebhookAction
  *
+ * @typedef {undefined | [Task,String[]] | [undefined, undefined] | [Task, undefined]} WebhookReturn
+ *
  * @typedef {{id: string, name: string}} IdNameTuple
  *
+ *
+ * @callback MonitorCallback
+ * @param task {Task} The task that was updated
+ * @param fields {[string]} The fields that were update
+ * @return {Promise} A promise that finished when the changes are pushed
  */
-
-
 class TrelloMonitor {
     /**
      * @type {TaskList} The list to monitor
      */
     monitoredList;
+    /**
+     * @type MonitorCallback
+     */
+    monitorCallback;
+
+    /**
+     *
+     * @param callback {MonitorCallback}
+     */
+    setMonitorCallback(callback) {
+        this.monitorCallback = callback;
+    }
 
     /**
      * Handles a new card being added to the published lists on trello.
      *
      * @param card {IdNameTuple} The card that was created.
+     * @return {WebhookReturn} The task and fields updated
      */
-    onCardCreated(card) {
+    async onCardCreated(card) {
         //TODO propagate this change to google
-        requester.getCard(card.id).then(rawCard => {
-            let task = this.monitoredList.getOrMakeTask(task => trelloInterface.doesTaskMatchData(task, rawCard));
-            task.listCategoryAdded = false;
-            trelloInterface.loadIntoTask(rawCard, task);
-            if (task.listCategoryAdded) {
-                return trelloInterface.propagateCategoryChange(task);
-            }
-            console.log(`Card '${card.name}' (${card.id}) created locally`);
-        });
+        let rawCard = await requester.getCard(card.id);
+        let task = this.monitoredList.getOrMakeTask(task => trelloInterface.doesTaskMatchData(task, rawCard));
+        task.listCategoryAdded = false;
+        trelloInterface.loadIntoTask(rawCard, task);
+        if (task.listCategoryAdded) {
+            await trelloInterface.propagateCategoryChange(task);
+        }
+        console.log(`Card '${card.name}' (${card.id}) created locally`);
+
+        return [task, null];
     }
 
     /**
      *
      * @param card {IdNameTuple} The card to delete
+     * @return {WebhookReturn} The task and fields updated
      */
     onCardDeleted(card) {
         //TODO propagate this change to google
         this.monitoredList.deleteTask(task => task.getField(fields.TRELLO_ID) === card.id);
+
         console.log(`Card '${card.name}' (${card.id}) deleted locally`);
+
+        return [null, null];
     }
 
     /**
      *
      * @param card {{name: string, desc: string, id:string}}
+     *
+     * @return {WebhookReturn} The task and fields updated
      */
     onMainChanged(card) {
         let task = this.monitoredList.getTask(task => task.getField(fields.TRELLO_ID) === card.id);
@@ -90,9 +115,14 @@ class TrelloMonitor {
             //TODO propagate this change to google
             task.setField(fields.NAME, card.name);
             task.setField(fields.DESCRIPTION, card.desc);
-            console.log(`Card '${card.name}' (${card.id}) update handled.`)
+
+            console.log(`Card '${card.name}' (${card.id}) update handled.`);
+
+            return [task, [fields.NAME, fields.DESCRIPTION]]
         } else {
             console.error(`Could not match card in webhook '${card.id}' (${card.name}) with any known task`);
+
+            return null;
         }
     }
 
@@ -101,6 +131,7 @@ class TrelloMonitor {
      * @param customFieldId {IdNameTuple}
      * @param customFieldVal {RawCustomField}
      * @param card {IdNameTuple}
+     * @return {WebhookReturn} The task and fields updated
      */
     onCustomChanged(customFieldId, customFieldVal, card) {
         let task = this.monitoredList.getTask(task => task.getField(fields.TRELLO_ID) === card.id);
@@ -108,43 +139,51 @@ class TrelloMonitor {
             //TODO propagate this change to google
             let category = -1;
             let fieldVal = trelloInterface.customFieldToValue(customFieldVal);
+            let fieldToUpdate;
             switch (customFieldId.id) {
                 //TODO: make custom field handling globally "better"
                 case "5da6fbfff25f736fcdec8cfb":
-                    task.setField(fields.IS_BEGINNER, customFieldVal);
+                    fieldToUpdate = fields.IS_BEGINNER;
                     break;
                 case "5da6fbfff25f736fcdec8cef":
-                    task.setField(fields.DAYS, fieldVal);
+                    fieldToUpdate = fields.DAYS;
                     break;
                 case "5da6fbfff25f736fcdec8ced":
-                    task.setField(fields.TAGS, fieldVal);
+                    fieldToUpdate = fields.TAGS;
                     break;
                 case "5da6fbfff25f736fcdec8ceb":
-                    task.setField(fields.MAX_INSTANCES, fieldVal);
+                    fieldToUpdate = fields.MAX_INSTANCES;
                     break;
                 case "5da6fbfff25f736fcdec8ce8":
-                    task.setField(fields.GOOGLE_ID, fieldVal);
+                    fieldToUpdate = fields.GOOGLE_ID;
                     break;
+
                 case "5da6fbfff25f736fcdec8cf9":
+                    fieldToUpdate = fields.CATEGORIES;
                     category = categories.CODING;
                     break;
                 case "5da6fbfff25f736fcdec8cf7":
+                    fieldToUpdate = fields.CATEGORIES;
                     category = categories.DESIGN;
                     break;
                 case "5da6fbfff25f736fcdec8cf5":
+                    fieldToUpdate = fields.CATEGORIES;
                     category = categories.DOCS_TRAINING;
                     break;
                 case "5da6fbfff25f736fcdec8cf3":
+                    fieldToUpdate = fields.CATEGORIES;
                     category = categories.QA;
                     break;
                 case "5da6fbfff25f736fcdec8cf1":
+                    fieldToUpdate = fields.CATEGORIES;
                     category = categories.OUTRESEARCH;
                     break;
                 default:
-                    console.error(`Unknown custom field '${customFieldId.name}' (${customFieldId.id}) in webhook`)
+                    console.error(`Unknown custom field '${customFieldId.name}' (${customFieldId.id}) in webhook`);
+                    return null;
             }
 
-            if (category >= 0) {
+            if (fieldToUpdate === fields.CATEGORIES) {
                 if (fieldVal) {
                     // Gaining a new category
                     task.addCategory(category);
@@ -152,10 +191,15 @@ class TrelloMonitor {
                     //TODO Stop removing the category for the list the card is in
                     task.removeCategory(category);
                 }
+            } else {
+                task.setField(fieldToUpdate, fieldVal);
             }
-            console.log(`Card '${card.name}' (${card.id}) custom field handled.`)
+
+            console.log(`Card '${card.name}' (${card.id}) custom field handled.`);
+            return [task, [fieldToUpdate]];
         } else {
             console.error(`Could not match card '${card.id}' (${card.name}) in webhook with any known task`);
+            return null;
         }
     }
 
@@ -164,8 +208,9 @@ class TrelloMonitor {
      * @param oldList {IdNameTuple} The list the card was moved from
      * @param newList {IdNameTuple} The list the card was moved to
      * @param card {IdNameTuple} The card that was moved
+     * @return {WebhookReturn} The task and fields updated
      */
-    onCardMoved(oldList, newList, card) {
+    async onCardMoved(oldList, newList, card) {
         let task = this.monitoredList.getTask(task => task.getField(fields.TRELLO_ID) === card.id);
         if (task) {
             //TODO propagate this change to google
@@ -173,11 +218,13 @@ class TrelloMonitor {
             task.addCategory(parseInt(catLookup[newList.id]));
 
             // Replicate this category change
-            trelloInterface.propagateCategoryChange(task);
+            await trelloInterface.propagateCategoryChange(task);
 
             console.log(`Card '${card.name}' (${card.id}) moved from list '${oldList.name}' to list '${newList.name}'`)
+            return [task, [fields.CATEGORIES]];
         } else {
             console.error(`Could not match card '${card.id}' (${card.name}) in webhook with any known task`);
+            return null;
         }
     }
 
@@ -194,6 +241,8 @@ class TrelloMonitor {
     /**
      *
      * @param body {WebhookAction}
+     *
+     * @return {WebhookReturn} The task and fields updated
      */
     onWebhookActivate(body) {
         let actionType = body.display.translationKey;
@@ -218,12 +267,11 @@ class TrelloMonitor {
                     return this.onCardCreated(body.data.card);
                 } else if (!movedInto && movedOut) { //Delete card
                     return this.onCardDeleted(body.data.card);
-                } else {
-                    //fallthrough to print
                 }
             // fallthrough when else is hit
             default:
-                console.error("Irrelevant webhook trigger")
+                console.error("Irrelevant webhook trigger");
+                return null;
         }
     }
 
@@ -281,7 +329,8 @@ class TrelloMonitor {
             res.set('Content-Type', 'text/plain');
             res.send("Webhook received");
             if (req.body.action.idMemberCreator !== botMemberId) {
-                this.onWebhookActivate(req.body.action);
+                Promise.resolve(this.onWebhookActivate(req.body.action)) //Handle the webhook
+                    .then(this.monitorCallback); //Push the updates
             }
         });
 
@@ -301,8 +350,6 @@ class TrelloMonitor {
             }
         });
     }
-
-
 }
 
 module.exports = new TrelloMonitor();
