@@ -10,6 +10,7 @@ const catLookup = Object.entries(categoryLists).reduce((ret, entry) => {
 const express = require('express');
 const bodyParser = require('body-parser');
 const requester = require("./TrelloApiRequester.js");
+
 /**
  *
  * @typedef {{
@@ -43,7 +44,13 @@ const requester = require("./TrelloApiRequester.js");
  * @typedef {{id: string, name: string}} IdNameTuple
  *
  */
+
+
 class TrelloMonitor {
+    /**
+     * @type {TaskList} The list to monitor
+     */
+    monitoredList;
 
     /**
      * Handles a new card being added to the published lists on trello.
@@ -63,9 +70,13 @@ class TrelloMonitor {
         });
     }
 
+    /**
+     *
+     * @param card {IdNameTuple} The card to delete
+     */
     onCardDeleted(card) {
         //TODO propagate this change to google
-        //TODO implement
+        this.monitoredList.deleteTask(task => task.getField(fields.TRELLO_ID) === card.id);
         console.log(`Card '${card.name}' (${card.id}) deleted locally`);
     }
 
@@ -253,7 +264,6 @@ class TrelloMonitor {
             console.log(`Webhook for '${category}' created`);
         }
     }
-
 
 
     /**
