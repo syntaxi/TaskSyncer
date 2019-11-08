@@ -41,14 +41,14 @@ const requester = require("./TrelloApiRequester.js");
  *      }
  * }} WebhookAction
  *
- * @typedef {undefined | [Task,String[]] | [undefined, undefined] | [Task, undefined]} WebhookReturn
+ * @typedef {undefined | [Task, int, String[]]} WebhookReturn
  *
  * @typedef {{id: string, name: string}} IdNameTuple
  *
  *
  * @callback MonitorCallback
  * @param task {Task} The task that was updated
- * @param fields {[string]} The fields that were update
+ * @param [fields] {[string]} The fields that were update
  * @return {Promise} A promise that finished when the changes are pushed
  */
 class TrelloMonitor {
@@ -59,14 +59,26 @@ class TrelloMonitor {
     /**
      * @type MonitorCallback
      */
-    monitorCallback;
+    createdCallback;
+    /**
+     * @type MonitorCallback
+     */
+    deletedCallback;
+    /**
+     * @type MonitorCallback
+     */
+    alteredCallback;
 
     /**
      *
-     * @param callback {MonitorCallback}
+     * @param created {MonitorCallback}
+     * @param deleted {MonitorCallback}
+     * @param altered {MonitorCallback}
      */
-    setMonitorCallback(callback) {
-        this.monitorCallback = callback;
+    setMonitorCallbacks(created, deleted, altered) {
+        this.createdCallback = created;
+        this.deletedCallback = deleted;
+        this.alteredCallback = altered;
     }
 
     /**
@@ -86,7 +98,7 @@ class TrelloMonitor {
         }
         console.log(`Card '${card.name}' (${card.id}) created locally`);
 
-        return [task, null];
+        return [task, 1, []];
     }
 
     /**
@@ -96,11 +108,11 @@ class TrelloMonitor {
      */
     onCardDeleted(card) {
         //TODO propagate this change to google
-        this.monitoredList.deleteTask(task => task.getField(fields.TRELLO_ID) === card.id);
+        let task = this.monitoredList.getTask(task => task.getField(fields.TRELLO_ID) === card.id);
+        this.monitoredList.deleteThisTask(task);
 
         console.log(`Card '${card.name}' (${card.id}) deleted locally`);
-
-        return [null, null];
+        return [task, 2, []];
     }
 
     /**
@@ -117,11 +129,9 @@ class TrelloMonitor {
             task.setField(fields.DESCRIPTION, card.desc);
 
             console.log(`Card '${card.name}' (${card.id}) update handled.`);
-
-            return [task, [fields.NAME, fields.DESCRIPTION]]
+            return [task, 3, [fields.NAME, fields.DESCRIPTION]]
         } else {
             console.error(`Could not match card in webhook '${card.id}' (${card.name}) with any known task`);
-
             return null;
         }
     }
@@ -196,7 +206,7 @@ class TrelloMonitor {
             }
 
             console.log(`Card '${card.name}' (${card.id}) custom field handled.`);
-            return [task, [fieldToUpdate]];
+            return [task, 3, [fieldToUpdate]];
         } else {
             console.error(`Could not match card '${card.id}' (${card.name}) in webhook with any known task`);
             return null;
@@ -220,8 +230,8 @@ class TrelloMonitor {
             // Replicate this category change
             await trelloInterface.propagateCategoryChange(task);
 
-            console.log(`Card '${card.name}' (${card.id}) moved from list '${oldList.name}' to list '${newList.name}'`)
-            return [task, [fields.CATEGORIES]];
+            console.log(`Card '${card.name}' (${card.id}) moved from list '${oldList.name}' to list '${newList.name}'`);
+            return [task, 3, [fields.CATEGORIES]];
         } else {
             console.error(`Could not match card '${card.id}' (${card.name}) in webhook with any known task`);
             return null;
@@ -329,8 +339,23 @@ class TrelloMonitor {
             res.set('Content-Type', 'text/plain');
             res.send("Webhook received");
             if (req.body.action.idMemberCreator !== botMemberId) {
-                Promise.resolve(this.onWebhookActivate(req.body.action)) //Handle the webhook
-                    .then(this.monitorCallback); //Push the updates
+                Promise.resolve(this.onWebhookActivate(req.body.action)) // Handle the webhook
+                    .then(args => { // Push the updates
+                        if (args) {
+                            let [task, type, fields] = args;
+                            switch (type) {
+                                case 1:
+                                    this.createdCallback(task);
+                                    break;
+                                case 2:
+                                    this.deletedCallback(task);
+                                    break;
+                                case 3:
+                                    this.alteredCallback(task, fields);
+                                    break;
+                            }
+                        }
+                    });
             }
         });
 

@@ -6,7 +6,7 @@ const trelloMonitor = require("./TrelloMonitor.js");
 const googleInterface = require("./GoogleInterface.js");
 
 class TaskSyncer {
-    taskList = new TaskList();
+    taskList = TaskList;
     google = googleInterface;
     trello = trelloInterface;
 
@@ -21,8 +21,22 @@ class TaskSyncer {
     }
 
     monitorTrello() {
-        trelloMonitor.setMonitorCallback(this.onTrelloUpdated.bind(this));
+        trelloMonitor.setMonitorCallbacks(this.onTrelloCreated, this.onTrelloDeleted, this.onTrelloAltered);
         trelloMonitor.setupMonitoring(this.taskList);
+    }
+
+    /**
+     * @param task {Task}
+     */
+    onTrelloCreated(task) {
+        console.log(`Created task ${task.getField(fields.NAME)}`);
+    }
+
+    /**
+     * @param task {Task}
+     */
+    onTrelloDeleted(task) {
+        console.log(`Deleted task ${task.getField(fields.NAME)}`);
     }
 
     /**
@@ -30,7 +44,7 @@ class TaskSyncer {
      * @param task {Task}
      * @param updatedFields {String[]}
      */
-    onTrelloUpdated(task, updatedFields) {
+    onTrelloAltered(task, updatedFields) {
         console.log(`Updated task '${task.getField(fields.NAME)}' fields: ${updatedFields.map(val => `'${val}'`).join(", ")}`);
     }
 
