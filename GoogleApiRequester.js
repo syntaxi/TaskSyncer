@@ -63,6 +63,15 @@ class GoogleApiRequester extends BaseApiRequester {
     }
 
     /**
+     *
+     * @param id {String} The ID of the task to delete
+     * @return {Promise<>} A promise that is fulfilled when the deletion goes through
+     */
+    deleteTask(id) {
+        return this.queueRequest(this.buildGoogleDelete(id));
+    }
+
+    /**
      * Gets a page of responses
      * @param pageNum The number of the page to get
      * @returns {Promise<{}>} A promise which is fulfilled by the request response
@@ -104,6 +113,21 @@ class GoogleApiRequester extends BaseApiRequester {
         return {
             method: 'GET',
             uri: `https://codein.withgoogle.com/api/program/current/${item}/${queryArg ? "?" : ""}${queryArg}`,
+            auth: {
+                'bearer': this.token
+            },
+            json: true
+        };
+    }
+
+    /**
+     * Makes a PUT request to the google api
+     * @param taskId The id of the task to DELETE to
+     */
+    buildGoogleDelete(taskId) {
+        return {
+            method: 'DELETE',
+            uri: `https://codein.withgoogle.com/api/program/current/tasks/${taskId}/`,
             auth: {
                 'bearer': this.token
             },
