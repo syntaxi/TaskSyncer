@@ -10,7 +10,10 @@ const googleInterface = require("./GoogleInterface.js");
 
 // Treats google as the source of truth.
 
-taskSyncer.loadFromGoogle();
+taskSyncer.loadFromGoogle()
+    .then(() => taskSyncer.loadFromTrello())
+    .then(() => taskSyncer.writeToGoogle())
+    .then(() => taskSyncer.monitorTrello());
 
 // newTaskList.loadUsingInterface(trelloInterface)
 //     .then(() => trelloMonitor.setupMonitoring(newTaskList));

@@ -56,7 +56,7 @@ class TaskSyncer {
 
     writeToGoogle() {
         return this.google.writeAllTasks(this.taskList)
-            .tap(this._propagateIds);
+            .tap(this._propagateIds.bind(this));
     }
 
     monitorGoogle() {

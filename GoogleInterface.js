@@ -12,7 +12,8 @@ class GoogleInterface extends ApiInterface {
      * @inheritDoc
      */
     updateOtherId(task) {
-        return requester.updateTask(task, this.taskToRaw(task)).then(() => task);
+        return requester.updateTask(task, this.taskToRaw(task))
+            .then(() => task);
     }
 
     /**
@@ -45,6 +46,10 @@ class GoogleInterface extends ApiInterface {
                 }
                 return task;
             });
+    }
+
+    deleteTask(task) {
+        return requester.deleteTask(task.getField(fields.GOOGLE_ID));
     }
 
     /**
