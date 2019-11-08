@@ -5,25 +5,6 @@ const ApiInterface = require("./ApiInterface.js");
 /**
  * An interface between the Google Code-In site, and the internal data representation
  *
- * @typedef {{
- *      categories: [number]
- *      id:number
- *      name:string
- *      description:string
- *      available_count: number
- *      claimed_count: number
- *      completed_count: number
- *      external_url: string
- *      is_beginner: boolean
- *      last_modified: string
- *      max_instances: number
- *      mentors: [string]
- *      private_metadata: string
- *      status: number
- *      tags: [string]
- *      time_to_complete_in_days: number
- *  }} RawGoogle
- *
  * @see ApiInterface
  */
 class GoogleInterface extends ApiInterface {
@@ -88,7 +69,7 @@ class GoogleInterface extends ApiInterface {
                         if (reason.statusCode === 404) { // 404 code indicates the ID is bogus and we need to make a new task
                             console.log(`Updating task '${task.getField(fields.NAME)}' failed. Creating new task`);
                             return requester.createTask(rawTask)
-                                .tap(response => task.setField(fields.GOOGLE_ID, response[id]));
+                                .tap(response => task.setField(fields.GOOGLE_ID, response.id));
                         }
                     });
         } else {

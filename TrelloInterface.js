@@ -6,21 +6,6 @@ const ApiInterface = require("./ApiInterface.js");
 /**
  * An interface between the Trello Board and the GCI Site
  *
- * @typedef {{
- *      id: string
- *      customFieldItems: [RawCustomField]
- *      dateLastActivity: string
- *      desc: string
- *      idList: string
- *      name: string
- * }} RawTrello
- *
- * @typedef {{
- *      [idCustomField]: string
- *      value: ({text: string}|undefined|{checked: string}|{number: string})
- * }} RawCustomField
- *
- *
  * @see ApiInterface
  */
 class TrelloInterface extends ApiInterface {

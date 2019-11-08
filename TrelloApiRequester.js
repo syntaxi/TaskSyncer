@@ -4,6 +4,21 @@ const BaseApiRequester = require("./BaseApiRequester.js");
 
 /**
  * An API requester that interfaces with the GCI site.
+ *
+ * @typedef {{
+ *      id: string
+ *      customFieldItems: [RawCustomField]
+ *      dateLastActivity: string
+ *      desc: string
+ *      idList: string
+ *      name: string
+ * }} RawTrello
+ *
+ * @typedef {{
+ *      [idCustomField]: string
+ *      value: ({text: string}|undefined|{checked: string}|{number: string})
+ * }} RawCustomField
+ *
  */
 class TrelloApiRequester extends BaseApiRequester {
     constructor(key, token) {

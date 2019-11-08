@@ -3,6 +3,33 @@ const BaseApiRequester = require("./BaseApiRequester.js");
 
 /**
  * An API requester that interfaces with the GCI site.
+ *
+ * @typedef {{
+ *      categories: [number]
+ *      id:number
+ *      name:string
+ *      description:string
+ *      available_count: number
+ *      claimed_count: number
+ *      completed_count: number
+ *      external_url: string
+ *      is_beginner: boolean
+ *      last_modified: string
+ *      max_instances: number
+ *      mentors: [string]
+ *      private_metadata: string
+ *      status: number
+ *      tags: [string]
+ *      time_to_complete_in_days: number
+ *  }} RawGoogle
+ *
+ *  @typedef {{
+ *      count: number
+ *      next: string
+ *      previous: string
+ *      results: [RawGoogle]
+ *  }} RawGooglePage
+ *
  */
 class GoogleApiRequester extends BaseApiRequester {
     constructor(googleToken) {
@@ -20,7 +47,7 @@ class GoogleApiRequester extends BaseApiRequester {
      *
      * @param task The id of the task to update
      * @param data The data to update the task to
-     * @returns {Promise} A promise which is fulfilled by the request response
+     * @returns {Promise<RawGoogle>} A promise which is fulfilled by the request response
      */
     updateTask(task, data) {
         return this.queueRequest(this.buildGooglePut(task, data));
@@ -29,7 +56,7 @@ class GoogleApiRequester extends BaseApiRequester {
     /**
      * Creates a new task on the google site
      * @param data The data to set on the new task
-     * @returns {Promise} A promise which is fulfilled by the request response
+     * @returns {Promise<RawGoogle>} A promise which is fulfilled by the request response
      */
     createTask(data) {
         return this.queueRequest(this.buildGooglePost(data));
@@ -38,7 +65,7 @@ class GoogleApiRequester extends BaseApiRequester {
     /**
      * Gets a page of responses
      * @param pageNum The number of the page to get
-     * @returns {Promise} A promise which is fulfilled by the request response
+     * @returns {Promise<{}>} A promise which is fulfilled by the request response
      */
     getTaskPage(pageNum) {
         return this.queueRequest(this.buildGoogleGet('tasks', pageNum));

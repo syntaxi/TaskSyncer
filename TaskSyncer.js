@@ -1,5 +1,4 @@
 const TaskList = require("./TaskList.js");
-const {fields, categories} = require("./Globals");
 
 const trelloInterface = require("./TrelloInterface.js");
 const trelloMonitor = require("./TrelloMonitor.js");
