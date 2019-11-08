@@ -1,4 +1,3 @@
-
 /**
  * The ApiInterface is the class that does the bulk lifting in converting the data in a task, into the data a service uses.
  * At present the only two services supported are Trello ({@link TrelloInterface} and the GCI site ({@link GoogleInterface})
@@ -54,7 +53,10 @@ class ApiInterface {
      * @return {Promise<TaskList>} A Promise containing the (potentially updated) task list
      */
     writeAllTasks(taskList) {
-        return Promise.all(taskList.tasks.map(task => this.writeTask(task)));
+        return Promise.all( // Group all the following promises into one
+            taskList.getTasks() // Get all the tasks
+                .map(task => this.writeTask(task)) // Convert each task into a map that will updated the task
+        ).then(() => taskList); // Make the return type the taskList
     }
 
     /**
@@ -80,16 +82,6 @@ class ApiInterface {
      */
     updateOtherId(task) {
         throw new Error("Method Unimplemented");
-    }
-
-    /**
-     * Activates change monitoring for the service.
-     * This will periodically check for changes in the data on the service and replicate them to the other services.
-     *
-     * @param taskList {TaskList}
-     */
-    setupMonitoring(taskList) {
-
     }
 
 }

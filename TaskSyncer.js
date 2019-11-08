@@ -1,6 +1,7 @@
 const TaskList = require("./TaskList.js");
 
 const trelloInterface = require("./TrelloInterface.js");
+const trelloMonitor = require("./TrelloMonitor.js");
 const googleInterface = require("./GoogleInterface.js");
 
 class TaskSyncer {
@@ -19,7 +20,7 @@ class TaskSyncer {
     }
 
     monitorTrello() {
-
+        trelloMonitor.setupMonitoring(this.taskList);
     }
 
     loadFromGoogle() {
