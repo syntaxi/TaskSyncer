@@ -1,5 +1,25 @@
 
 class TaskSyncer {
+
+    loadFromTrello() {
+    }
+
+    writeToTrello() {
+    }
+
+    monitorTrello() {
+
+    }
+
+    loadFromGoogle() {
+    }
+
+    writeToGoogle() {
+    }
+
+    monitorGoogle() {
+
+    }
 }
 
 
