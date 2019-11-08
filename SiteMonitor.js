@@ -1,3 +1,9 @@
+/**
+ * @callback MonitorCallback
+ * @param task {Task} The task that was updated
+ * @param [fields] {string[]} The fields that were update
+ * @return {Promise} A promise that finished when the changes are pushed
+ */
 class SiteMonitor {
 
     /**

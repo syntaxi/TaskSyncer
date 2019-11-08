@@ -18,8 +18,14 @@ class TaskList {
         this.tasks = [];
     }
 
-    getNewDefaultTask() {
+    getDefaultTask(){
         return new Task();
+    }
+
+    createTask() {
+        let task = this.getDefaultTask();
+        this.tasks.push(task);
+        return task;
     }
 
     /**
@@ -36,12 +42,10 @@ class TaskList {
         let index = this.tasks.findIndex(matching);
 
         /* Make new task if one doesn't exist */
-        if (index === -1) {
-            this.tasks.push(this.getNewDefaultTask());
-            index = this.tasks.length - 1;
-        }
-        return this.tasks[index];
+        return index === -1 ? this.createTask() : this.tasks[index];
     }
+
+
 
     /**
      * Gets a task matching the given predicate

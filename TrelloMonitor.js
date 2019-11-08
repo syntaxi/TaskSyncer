@@ -48,10 +48,6 @@ const requester = require("./TrelloApiRequester.js");
  * @typedef {{id: string, name: string}} IdNameTuple
  *
  *
- * @callback MonitorCallback
- * @param task {Task} The task that was updated
- * @param [fields] {[string]} The fields that were update
- * @return {Promise} A promise that finished when the changes are pushed
  */
 class TrelloMonitor extends SiteMonitor {
 
