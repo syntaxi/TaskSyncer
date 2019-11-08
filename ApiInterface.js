@@ -26,21 +26,6 @@ class ApiInterface {
     }
 
     /**
-     * Attempts to load a single task from the service.
-     *
-     * If it cannot find an entry in the service based on the relevant service ID,
-     * then this method will fail with an error
-     *
-     * Data is only overwritten following the same rules as {@link ApiInterface#loadAllTasks()}.
-     *
-     * @param task {Task} The task to load from the service
-     * @return {Promise<Task>} A Promise containing the now updated task
-     */
-    loadTask(task) {
-        throw new Error("Method Unimplemented");
-    }
-
-    /**
      * Write every task in the task list into the service.
      *
      * If possible, will attempt to update an existing entry using the relevant unique service ID.

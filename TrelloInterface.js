@@ -61,13 +61,6 @@ class TrelloInterface extends ApiInterface {
     /**
      * @inheritDoc
      */
-    loadTask(task) {
-        return super.loadTask(task); //TODO: Implement
-    }
-
-    /**
-     * @inheritDoc
-     */
     writeTask(task) {
         task.resetUpdatedFields();
         let rawCustomFields = this.customToRaw(task);

@@ -12,7 +12,7 @@ class GoogleInterface extends ApiInterface {
      * @inheritDoc
      */
     updateOtherId(task) {
-        return requester.updateTask(task, this.taskToRaw(task));
+        return requester.updateTask(task, this.taskToRaw(task)).then(() => task);
     }
 
     /**
@@ -43,14 +43,8 @@ class GoogleInterface extends ApiInterface {
                     console.log(`Task '${task.getField(fields.NAME)}' updated on GCI`);
                     task.googleTaskMade = false;
                 }
+                return task;
             });
-    }
-
-    /**
-     * @inheritDoc
-     */
-    loadTask(task) {
-        return super.loadTask(task);  //TODO: Implement
     }
 
     /**
