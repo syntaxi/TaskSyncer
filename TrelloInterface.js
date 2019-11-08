@@ -102,6 +102,13 @@ class TrelloInterface extends ApiInterface {
     }
 
     /**
+     * @inheritDoc
+     */
+    deleteTask(task) {
+        return requester.deleteCard(task.getField(fields.TRELLO_ID));
+    }
+
+    /**
      * Update all the custom fields on a card, waiting for each request to finish before proceeding with the next one
      * @param cardId {string} The id of the card to update
      * @param rawCustomFields {Object.<string, RawCustomField>}

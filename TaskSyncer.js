@@ -29,14 +29,16 @@ class TaskSyncer {
      * @param task {Task}
      */
     onTrelloCreated(task) {
-        console.log(`Created task ${task.getField(fields.NAME)}`);
+        googleInterface.writeOrCreate(task)
+            .then(() => console.log("Creation pushed to google"));
     }
 
     /**
      * @param task {Task}
      */
     onTrelloDeleted(task) {
-        console.log(`Deleted task ${task.getField(fields.NAME)}`);
+        googleInterface.deleteTask(task)
+            .then(() => console.log(`Deletion pushed to google`));
     }
 
     /**
@@ -45,7 +47,8 @@ class TaskSyncer {
      * @param updatedFields {String[]}
      */
     onTrelloAltered(task, updatedFields) {
-        console.log(`Updated task '${task.getField(fields.NAME)}' fields: ${updatedFields.map(val => `'${val}'`).join(", ")}`);
+        googleInterface.writeTask(task)
+            .then(() => console.log("Alteration pushed to google"));
     }
 
     loadFromGoogle() {

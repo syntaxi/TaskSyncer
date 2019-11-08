@@ -46,6 +46,11 @@ class TrelloApiRequester extends BaseApiRequester {
         return this.queueRequest(this.buildTrelloPost(`cards`, rawMain));
     }
 
+    deleteCard(id) {
+        //TODO: should this archive not delete?
+        return this.queueRequest(this.buildTrelloDelete(`cards/${id}`));
+    }
+
     getCard(id) {
         return this.queueRequest((this.buildTrelloGet(`cards/${id}`, {customFieldItems: true})))
     }

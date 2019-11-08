@@ -66,10 +66,24 @@ class ApiInterface {
      * but will fall back and create a new one if this fails.
      * Also similarly, after this method the task will point to whatever entry was updated
      *
-     * @param task {Task}
+     * @param task {Task} The task to write
      * @return {Promise<Task>} The task that was written
      */
     writeTask(task) {
+        throw new Error("Method Unimplemented");
+    }
+
+    /**
+     * Deletes a single entry from the service.
+     *
+     * This will fail silently if the task could not be found on the service,
+     * as this will be assumed to indicate that it is already deleted.
+     * The deletion will not be propagated over to other services
+     *
+     * @param task {Task} The task to delete
+     * @return {Promise<>} A promise that with finish when the task is deleted
+     */
+    deleteTask(task) {
         throw new Error("Method Unimplemented");
     }
 
