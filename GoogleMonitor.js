@@ -10,7 +10,8 @@ class GoogleMonitor extends SiteMonitor {
      */
     setupMonitoring(taskList) {
         this.monitoredList = taskList;
-        setInterval(this.doPoll.bind(this), googlePollRate);
+        setInterval(this.doPoll.bind(this), googlePollRate * 1000);
+        console.log(`Setup google polling at interval of ${googlePollRate} second(s)`)
     }
 
     async doPoll() {

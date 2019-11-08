@@ -45,4 +45,4 @@ class SiteMonitor {
     }
 }
 
-module.exports = new SiteMonitor();
+module.exports = SiteMonitor;

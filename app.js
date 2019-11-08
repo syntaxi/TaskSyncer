@@ -13,7 +13,7 @@ const googleInterface = require("./GoogleInterface.js");
 taskSyncer.loadFromGoogle()
     .then(() => taskSyncer.loadFromTrello())
     .then(() => taskSyncer.writeToGoogle())
-    .then(() => taskSyncer.monitorTrello());
+    .then(() => taskSyncer.monitorGoogle());
 
 // newTaskList.loadUsingInterface(trelloInterface)
 //     .then(() => trelloMonitor.setupMonitoring(newTaskList));
