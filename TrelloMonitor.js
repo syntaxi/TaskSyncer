@@ -3,6 +3,7 @@ const SiteMonitor = require("./SiteMonitor");
 
 const {fields, categories} = require("./Globals");
 const {categoryLists, callbackUrl, boardId, botMemberId} = require("./config.json");
+const {trelloSecret} = require("./tokens.json");
 const catLookup = Object.entries(categoryLists).reduce((ret, entry) => {
     const [key, value] = entry;
     ret[value] = key;
@@ -289,6 +290,29 @@ class TrelloMonitor extends SiteMonitor {
         }
     }
 
+    /**
+     * Invokes the callbacks and then logs a message
+     * @param args {WebhookReturn}
+     */
+    callCallbacks(args) {
+        if (args) {
+            let [task, type, alteredFields] = args;
+            switch (type) {
+                case 1:
+                    this.createdCallback(task)
+                        .then(() => console.log(`Creation of ${task.getField(fields.NAME)} duplicated to google`));
+                    break;
+                case 2:
+                    this.deletedCallback(task)
+                        .then(() => console.log(`Deletion of ${task.getField(fields.NAME)} duplicated to google`));
+                    break;
+                case 3:
+                    this.alteredCallback(task, alteredFields)
+                        .then(() => console.log(`Alteration of ${task.getField(fields.NAME)} duplicated to google`));
+                    break;
+            }
+        }
+    }
 
     /**
      * Starts an express server to listen for webhooks on port 3000
@@ -303,25 +327,15 @@ class TrelloMonitor extends SiteMonitor {
         /* Listen and respond to webhooks */
         app.post('/trelloWebhook/', (req, res) => {
             res.set('Content-Type', 'text/plain');
-            res.send("Webhook received");
-            if (req.body.action.idMemberCreator !== botMemberId) {
-                Promise.resolve(this.onWebhookActivate(req.body.action)) // Handle the webhook
-                    .then(args => { // Push the updates
-                        if (args) {
-                            let [task, type, fields] = args;
-                            switch (type) {
-                                case 1:
-                                    this.createdCallback(task);
-                                    break;
-                                case 2:
-                                    this.deletedCallback(task);
-                                    break;
-                                case 3:
-                                    this.alteredCallback(task, fields);
-                                    break;
-                            }
-                        }
-                    });
+            //todo: improve?
+            if (verifyTrelloWebhookRequest(req, trelloSecret, callbackUrl)) {
+                res.send("Webhook received");
+                if (req.body.action.idMemberCreator !== botMemberId) {
+                    Promise.resolve(this.onWebhookActivate(req.body.action)) // Handle the webhook
+                        .then(args => this.callCallbacks(args));  // Push the updates
+                }
+            } else {
+                res.send("Access Denied");
             }
         });
 
@@ -341,6 +355,18 @@ class TrelloMonitor extends SiteMonitor {
             }
         });
     }
+}
+
+let crypto = require('crypto');
+
+function verifyTrelloWebhookRequest(request, secret, callbackURL) {
+    let base64Digest = function (s) {
+        return crypto.createHmac('sha1', secret).update(s).digest('base64');
+    };
+    let content = JSON.stringify(request.body) + callbackURL;
+    let doubleHash = base64Digest(content);
+    let headerHash = request.headers['x-trello-webhook'];
+    return doubleHash === headerHash;
 }
 
 module.exports = new TrelloMonitor();
