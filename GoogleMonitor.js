@@ -44,6 +44,7 @@ class GoogleMonitor extends SiteMonitor {
             this.onTaskDeleted(task);
             this.deletedCallback(task);
         }
+        console.log("Finished polling of google site")
     }
 
     /**
@@ -68,9 +69,33 @@ class GoogleMonitor extends SiteMonitor {
      * @return {String[]}
      */
     detectDifferences(one, two) {
+        let excludedFields = new Set([
+            fields.LAST_MODIFIED,
+            fields.AVAILABLE_COUNT,
+            fields.CLAIMED_COUNT,
+            fields.COMPLETED_COUNT,
+            fields.STATUS,
+            fields.EXTERNAL_URL,
+            fields.MENTORS,
+        ]);
         let result = [];
         //todo: Improve?
-        for (let field of fields) {
+        for (let field of Object.values(fields)) {
+            if (excludedFields.has(field)) {
+                continue;
+            }
+            let oneVal = one.getField(field);
+            let twoVal = two.getField(field);
+            // Different types means different values
+            if (typeof oneVal !== typeof twoVal) {
+                result.push(field);
+                continue;
+            }
+            // Arrays are the same, skip
+            if ((oneVal instanceof Array) && oneVal.equals(twoVal)) {
+                continue;
+            }
+            // Else just do basic comparison
             if (one.getField(field) !== two.getField(field)) {
                 result.push(field);
             }
