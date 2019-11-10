@@ -59,6 +59,46 @@ class TrelloInterface extends ApiInterface {
     }
 
     /**
+     * Write only specific fields to the service
+     * @param task {Task}
+     * @param alteredFields {string[]}
+     * @return {Promise<>} Promise that fulfils when the fields are written
+     */
+    async writeFields(task, alteredFields) {
+        let rawCustom = {};
+        const mainFields = new Set([fields.NAME, fields.DESCRIPTION]);
+        for (let alteredField of alteredFields) {
+            if (mainFields.has(alteredField)) {
+                await this.writeOrCreate(task);
+            } else {
+                switch (alteredField) {
+                    case fields.CATEGORIES:
+                        rawCustom = Object.assign(rawCustom, this.serialiseCategories(task));
+                        break;
+                    case fields.TAGS:
+                        rawCustom[customFields.tags] = this.serialiseTags(task);
+                        break;
+                    case fields.GOOGLE_ID:
+                        rawCustom[customFields.googleId] = this.getCustomFieldFromTask(fields.GOOGLE_ID, task);
+                        break;
+                    case fields.DAYS:
+                        rawCustom[customFields.days] = this.getCustomFieldFromTask(fields.GOOGLE_ID, task);
+                        break;
+                    case fields.IS_BEGINNER:
+                        rawCustom[customFields.isBeginner] = this.getCustomFieldFromTask(fields.GOOGLE_ID, task);
+                        break;
+                    case fields.MAX_INSTANCES:
+                        rawCustom[customFields.instances] = this.getCustomFieldFromTask(fields.GOOGLE_ID, task);
+                        break;
+                    default:
+                        console.log(`Attempted to write field to trello that can't be: '${alteredField}'`)
+                }
+            }
+        }
+        await this._updateAllFields(task.getField(fields.TRELLO_ID), rawCustom)
+    }
+
+    /**
      * @inheritDoc
      */
     writeTask(task) {
@@ -78,6 +118,7 @@ class TrelloInterface extends ApiInterface {
                 return task;
             });
     }
+
 
     /**
      * @inheritDoc
