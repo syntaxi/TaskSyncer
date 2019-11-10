@@ -18,7 +18,7 @@ class TaskSyncer {
 
     writeToTrello() {
         return this.trello.writeAllTasks(this.taskList)
-            .tap(this._propagateIds);
+            .tap(this._propagateIds.bind(this));
     }
 
     monitorTrello() {
@@ -30,16 +30,14 @@ class TaskSyncer {
      * @param task {Task}
      */
     onTrelloCreated(task) {
-        googleInterface.writeOrCreate(task)
-            .then(() => console.log("Creation pushed to google"));
+        return googleInterface.writeOrCreate(task)
     }
 
     /**
      * @param task {Task}
      */
     onTrelloDeleted(task) {
-        googleInterface.deleteTask(task)
-            .then(() => console.log(`Deletion pushed to google`));
+        return googleInterface.deleteTask(task)
     }
 
     /**
@@ -48,8 +46,7 @@ class TaskSyncer {
      * @param updatedFields {String[]}
      */
     onTrelloAltered(task, updatedFields) {
-        googleInterface.writeTask(task)
-            .then(() => console.log("Alteration pushed to google"));
+        return googleInterface.writeTask(task)
     }
 
     loadFromGoogle() {
@@ -66,16 +63,29 @@ class TaskSyncer {
         googleMonitor.setupMonitoring(this.taskList);
     }
 
+    /**
+     *
+     * @param task {Task}
+     */
     onGoogleCreated(task) {
-        console.log(`Task ${task.getField(fields.NAME)} created`)
+        return trelloInterface.createCard(task);
     }
 
+    /**
+     *
+     * @param task {Task}
+     */
     onGoogleDeleted(task) {
-        console.log(`Task ${task.getField(fields.NAME)} deleted`)
+        return trelloInterface.deleteTask(task);
     }
 
+    /**
+     *
+     * @param task {Task}
+     * @param alteredFields {String[]}
+     */
     onGoogleAltered(task, alteredFields) {
-        console.log(`Task ${task.getField(fields.NAME)} updated: "${alteredFields.map(field => `'${field}'`).join(", ")}"`)
+        return trelloInterface.writeFields(task, alteredFields);
     }
 
     /**
