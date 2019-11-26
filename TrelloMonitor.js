@@ -2,7 +2,7 @@ const trelloInterface = require("./TrelloInterface");
 const SiteMonitor = require("./SiteMonitor");
 
 const {fields, categories} = require("./Globals");
-const {categoryLists, callbackUrl, boardId, botMemberId} = require("./config.json");
+const {categoryLists, callbackUrl, boardId, botMemberId, trelloPort} = require("./config.json");
 const {trelloSecret} = require("./tokens.json");
 const catLookup = Object.entries(categoryLists).reduce((ret, entry) => {
     const [key, value] = entry;
@@ -347,7 +347,7 @@ class TrelloMonitor extends SiteMonitor {
         });
 
         /* Start the app */
-        app.listen(3000, err => {
+        app.listen(trelloPort, err => {
             if (err) {
                 throw err;
             } else {
